@@ -40,6 +40,17 @@ public final class HudRenderer {
         int width = graphics.guiWidth();
         int height = graphics.guiHeight();
 
+        // Waypoints go under the widgets, so a marker never covers a readout.
+        var waypoints = VoidrixClient.waypointsModule();
+        if (waypoints != null && waypoints.isEnabled()) {
+            try {
+                waypoints.render(graphics, font);
+            } catch (RuntimeException e) {
+                VoidrixClient.LOGGER.error("[Voidrix] waypoint rendering failed, disabling it", e);
+                waypoints.setEnabled(false);
+            }
+        }
+
         for (HudModule widget : VoidrixClient.modules().hudModules()) {
             if (!widget.isEnabled()) {
                 continue;

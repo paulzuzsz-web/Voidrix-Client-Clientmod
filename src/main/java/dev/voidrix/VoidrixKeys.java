@@ -13,6 +13,7 @@ public final class VoidrixKeys {
 
     public static KeyMapping openMenu;
     public static KeyMapping openHudEditor;
+    public static KeyMapping openWaypoints;
     public static KeyMapping zoom;
 
     private VoidrixKeys() {
@@ -23,6 +24,8 @@ public final class VoidrixKeys {
                 new KeyMapping("key.voidrix.menu", GLFW.GLFW_KEY_RIGHT_SHIFT, CATEGORY));
         openHudEditor = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.voidrix.hud_editor", GLFW.GLFW_KEY_RIGHT_CONTROL, CATEGORY));
+        openWaypoints = KeyMappingHelper.registerKeyMapping(
+                new KeyMapping("key.voidrix.waypoints", GLFW.GLFW_KEY_B, CATEGORY));
         zoom = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.voidrix.zoom", GLFW.GLFW_KEY_C, CATEGORY));
     }

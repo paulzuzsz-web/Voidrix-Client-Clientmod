@@ -30,6 +30,11 @@ import dev.voidrix.module.combat.SaturationHud;
 import dev.voidrix.module.combat.TargetHud;
 import dev.voidrix.module.iface.CleanHudModule;
 import dev.voidrix.module.misc.DiscordModule;
+import dev.voidrix.module.iface.ThemeModule;
+import dev.voidrix.module.misc.WaypointsModule;
+import dev.voidrix.module.visual.FovModule;
+import dev.voidrix.ui.WaypointScreen;
+import dev.voidrix.waypoint.WaypointManager;
 import dev.voidrix.module.visual.FullbrightModule;
 import dev.voidrix.module.visual.NoBobbingModule;
 import dev.voidrix.module.visual.ZoomModule;
@@ -58,10 +63,14 @@ public final class VoidrixClient implements ClientModInitializer {
 
     private static ModuleManager modules;
     private static ConfigManager config;
+    private static WaypointManager waypoints;
 
     private FullbrightModule fullbright;
     private NoBobbingModule noBobbing;
+    private FovModule fov;
     private DiscordModule discord;
+    private ThemeModule theme;
+    private static WaypointsModule waypointsModule;
 
     public static ModuleManager modules() {
         return modules;
@@ -69,6 +78,15 @@ public final class VoidrixClient implements ClientModInitializer {
 
     public static ConfigManager config() {
         return config;
+    }
+
+    public static WaypointManager waypoints() {
+        return waypoints;
+    }
+
+    /** The waypoint renderer, so the HUD pass can hand it a frame. */
+    public static WaypointsModule waypointsModule() {
+        return waypointsModule;
     }
 
     @Override
@@ -88,25 +106,35 @@ public final class VoidrixClient implements ClientModInitializer {
         // that do not exist yet while mods are still initialising.
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             config.load();
-            LOGGER.info("[Voidrix] {} modules registered, {} enabled",
-                    modules.all().size(), modules.enabledCount());
+            waypoints.load();
+            // The palette has to be live before the first menu is drawn.
+            theme.apply();
+            LOGGER.info("[Voidrix] {} modules registered, {} enabled, {} waypoints",
+                    modules.all().size(), modules.enabledCount(), waypoints.all().size());
         });
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             // Hand back any vanilla option we were holding, drop the Discord link, then persist.
             fullbright.restore();
             noBobbing.restore();
+            fov.restore();
             discord.shutdown();
             config.save();
+            waypoints.save();
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
 
     private void registerModules() {
+        waypoints = new WaypointManager();
+
         fullbright = new FullbrightModule();
         noBobbing = new NoBobbingModule();
+        fov = new FovModule();
         discord = new DiscordModule();
+        theme = new ThemeModule();
+        waypointsModule = new WaypointsModule();
 
         modules.registerAll(
                 // HUD widgets
@@ -142,11 +170,14 @@ public final class VoidrixClient implements ClientModInitializer {
                 fullbright,
                 noBobbing,
                 new ZoomModule(),
+                fov,
 
                 // Interface
                 new CleanHudModule(),
+                theme,
 
                 // Misc
+                waypointsModule,
                 discord
         );
     }
@@ -157,6 +188,9 @@ public final class VoidrixClient implements ClientModInitializer {
         }
         if (VoidrixKeys.openHudEditor.consumeClick()) {
             mc.setScreenAndShow(new HudEditorScreen());
+        }
+        if (VoidrixKeys.openWaypoints.consumeClick()) {
+            mc.setScreenAndShow(new WaypointScreen());
         }
 
         handleModuleHotkeys(mc);

@@ -6,7 +6,6 @@ public enum Category {
     COMBAT("Combat", "Readouts for fights - all display only"),
     VISUAL("Visual", "How the world and your view look"),
     INTERFACE("Interface", "Menus, inventory and on-screen furniture"),
-    CHAT("Chat", "Chat window behaviour"),
     MISC("Misc", "Everything else");
 
     private final String displayName;

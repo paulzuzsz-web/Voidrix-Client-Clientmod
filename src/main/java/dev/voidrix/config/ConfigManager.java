@@ -18,6 +18,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Reads and writes the single local config file.
@@ -30,23 +32,129 @@ public final class ConfigManager {
     private static final int FORMAT_VERSION = 1;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
+    private static final String DEFAULT_PROFILE = "default";
+
     private final ModuleManager modules;
     private final Path directory;
-    private final Path file;
+    private final Path profileDirectory;
+    private String profile = DEFAULT_PROFILE;
 
     public ConfigManager(ModuleManager modules) {
         this.modules = modules;
         this.directory = FabricLoader.getInstance().getConfigDir().resolve(VoidrixClient.MOD_ID);
-        this.file = directory.resolve("config.json");
+        this.profileDirectory = directory.resolve("profiles");
     }
 
+    /** The file the current profile lives in. */
     public Path file() {
-        return file;
+        return profileDirectory.resolve(sanitise(profile) + ".json");
     }
 
     /** True when the player has never run the mod before. */
     public boolean isFirstRun() {
-        return !Files.exists(file);
+        return !Files.exists(file());
+    }
+
+    // -------------------------------------------------------------------------------------
+    // Profiles
+    // -------------------------------------------------------------------------------------
+
+    public String currentProfile() {
+        return profile;
+    }
+
+    /** Every profile on disk, always including the default, sorted. */
+    public List<String> profiles() {
+        List<String> names = new ArrayList<>();
+        if (Files.isDirectory(profileDirectory)) {
+            try (var stream = Files.list(profileDirectory)) {
+                stream.filter(p -> p.getFileName().toString().endsWith(".json"))
+                        .map(p -> p.getFileName().toString())
+                        .map(n -> n.substring(0, n.length() - 5))
+                        .forEach(names::add);
+            } catch (IOException e) {
+                VoidrixClient.LOGGER.warn("[Voidrix] could not list profiles", e);
+            }
+        }
+        if (!names.contains(DEFAULT_PROFILE)) {
+            names.add(DEFAULT_PROFILE);
+        }
+        names.sort(String::compareToIgnoreCase);
+        return names;
+    }
+
+    /** Saves the current profile, then loads another one in its place. */
+    public void switchTo(String name) {
+        if (name == null || name.isBlank() || name.equals(profile)) {
+            return;
+        }
+        save();
+        profile = name;
+        writeState();
+        load();
+    }
+
+    /** Creates a profile seeded with the settings that are live right now. */
+    public void createProfile(String name) {
+        String clean = sanitise(name);
+        if (clean.isBlank() || profiles().contains(clean)) {
+            return;
+        }
+        profile = clean;
+        writeState();
+        save();
+    }
+
+    /** Deletes a profile. The default profile cannot be removed. */
+    public void deleteProfile(String name) {
+        if (DEFAULT_PROFILE.equals(name)) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(profileDirectory.resolve(sanitise(name) + ".json"));
+        } catch (IOException e) {
+            VoidrixClient.LOGGER.warn("[Voidrix] could not delete profile {}", name, e);
+        }
+        if (name.equals(profile)) {
+            switchTo(DEFAULT_PROFILE);
+        }
+    }
+
+    /** Strips anything that would escape the profiles directory or upset a filesystem. */
+    private static String sanitise(String name) {
+        return name.trim().replaceAll("[^A-Za-z0-9 _-]", "").trim();
+    }
+
+    private void readState() {
+        Path state = directory.resolve("state.json");
+        if (!Files.exists(state)) {
+            return;
+        }
+        try (Reader reader = Files.newBufferedReader(state, StandardCharsets.UTF_8)) {
+            JsonObject json = GSON.fromJson(reader, JsonObject.class);
+            if (json != null && json.has("profile")) {
+                String name = sanitise(json.get("profile").getAsString());
+                if (!name.isBlank()) {
+                    profile = name;
+                }
+            }
+        } catch (IOException | RuntimeException e) {
+            VoidrixClient.LOGGER.warn("[Voidrix] could not read state.json, using the default profile", e);
+        }
+    }
+
+    private void writeState() {
+        JsonObject json = new JsonObject();
+        json.addProperty("profile", profile);
+        try {
+            Files.createDirectories(directory);
+            try (Writer writer = Files.newBufferedWriter(directory.resolve("state.json"),
+                    StandardCharsets.UTF_8)) {
+                GSON.toJson(json, writer);
+            }
+        } catch (IOException e) {
+            VoidrixClient.LOGGER.error("[Voidrix] could not write state.json", e);
+        }
     }
 
     // -------------------------------------------------------------------------------------
@@ -54,17 +162,21 @@ public final class ConfigManager {
     // -------------------------------------------------------------------------------------
 
     public void load() {
-        if (!Files.exists(file)) {
+        readState();
+        migrateLegacyConfig();
+
+        Path source = file();
+        if (!Files.exists(source)) {
             modules.applyDefaults();
             save();
             return;
         }
 
         JsonObject root;
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+        try (Reader reader = Files.newBufferedReader(source, StandardCharsets.UTF_8)) {
             root = GSON.fromJson(reader, JsonObject.class);
         } catch (IOException | RuntimeException e) {
-            VoidrixClient.LOGGER.warn("[Voidrix] could not read {} - falling back to defaults", file, e);
+            VoidrixClient.LOGGER.warn("[Voidrix] could not read {} - falling back to defaults", source, e);
             modules.applyDefaults();
             return;
         }
@@ -146,16 +258,16 @@ public final class ConfigManager {
         root.add("modules", moduleData);
 
         try {
-            Files.createDirectories(directory);
+            Files.createDirectories(profileDirectory);
             // Write beside the target and move into place so a crash mid-write cannot truncate
             // an existing good config.
-            Path tmp = directory.resolve("config.json.tmp");
+            Path tmp = profileDirectory.resolve("~write.tmp");
             try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
                 GSON.toJson(root, writer);
             }
-            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
+            Files.move(tmp, file(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            VoidrixClient.LOGGER.error("[Voidrix] could not write {}", file, e);
+            VoidrixClient.LOGGER.error("[Voidrix] could not write {}", file(), e);
         }
     }
 
@@ -180,6 +292,24 @@ public final class ConfigManager {
         }
         entry.add("settings", settings);
         return entry;
+    }
+
+    /**
+     * Moves a pre-profiles {@code config.json} into the default profile, so upgrading does not
+     * silently reset everything the player had configured.
+     */
+    private void migrateLegacyConfig() {
+        Path legacy = directory.resolve("config.json");
+        if (!Files.exists(legacy) || Files.exists(file())) {
+            return;
+        }
+        try {
+            Files.createDirectories(profileDirectory);
+            Files.move(legacy, profileDirectory.resolve(DEFAULT_PROFILE + ".json"));
+            VoidrixClient.LOGGER.info("[Voidrix] migrated config.json into the default profile");
+        } catch (IOException e) {
+            VoidrixClient.LOGGER.warn("[Voidrix] could not migrate the old config", e);
+        }
     }
 
     /** Keeps HUD coordinates readable in the file instead of dumping full double precision. */

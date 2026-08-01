@@ -11,8 +11,8 @@ vanilla interface you actually want to see — behind one dark, purpose-built me
 
 ## Where your data goes
 
-Everything Voidrix does is local. Settings live in one JSON file on your disk. There is no account,
-no login, no backend and no telemetry.
+Everything Voidrix does is local. Settings and waypoints live in JSON files on your disk. There is
+no account, no login, no backend and no telemetry.
 
 **One exception, and it is opt-in: Discord rich presence.** That feature exists to be seen by other
 people, so when you switch it on it tells Discord what you are playing. It is off by default, needs
@@ -26,12 +26,44 @@ them off to begin with. Nothing else in the mod opens a network connection.
 
 ### The menu — `Right Shift`
 
-Three columns: categories, the modules in that category, and the settings of whichever module you
-selected. Toggles, sliders, dropdowns, RGB colour pickers and text fields, all drawn in the Voidrix
-style.
+An icon rail down the left picks the category, tabs across the top switch between **Mods**,
+**Profiles** and **Waypoints**, and the body is a grid of cards. Click a card to open that module's
+settings in place; the toggle on the card flips it without leaving the grid. The search box filters
+across every category at once.
+
+![A module's settings](docs/module-settings.png)
+
+Toggles, sliders, dropdowns, RGB colour pickers and text fields, all drawn in the Voidrix style —
+no textures, so every glyph re-colours itself instantly when you change theme.
 
 Every module can be given its own toggle key from its settings panel — click the key button, press a
 key, done. `Escape` while binding clears the key instead of assigning it.
+
+### Waypoints — `B`
+
+![Creating a waypoint](docs/waypoint-create.png)
+
+Press `B` and the dialogue opens with your current position already filled in and the name field
+already focused, because the common case is "I am standing on the thing I want to remember". Type a
+name, press Enter, done. Click the swatch to change colour.
+
+![A waypoint in the world](docs/waypoint-world.png)
+
+Markers are drawn over the world with the name and live distance. Minecraft offers no "where would
+this block appear on screen" call, so the position is worked out from the camera's own yaw, pitch
+and field of view. Markers that fall off screen — including ones behind you — are pinned to the
+nearest edge with a ring, so a waypoint is never simply lost.
+
+Waypoints are stored per dimension in their own file, separate from your settings, so they survive
+resetting your config or switching profiles.
+
+### Profiles
+
+![Profiles](docs/profiles.png)
+
+A profile is a complete, separate set of module settings. Create one, switch between them, delete
+the ones you are done with. Your old `config.json` is migrated into the default profile
+automatically the first time you run this version.
 
 ### The HUD editor — `Right Ctrl`
 
@@ -50,7 +82,7 @@ stays centred.
 
 ## Modules
 
-30 in total, across five categories.
+33 in total, across five categories.
 
 ### HUD — 20 widgets
 
@@ -96,20 +128,23 @@ assist and no reach extension in Voidrix, and there will not be.
 | Reach | How far away your last landed hit was |
 | Saturation | Your own hidden food buffer, the one vanilla tracks but never draws |
 
-### Visual — 3
+### Visual — 4
 
 - **Fullbright** — raise brightness past the vanilla ceiling. Your original value is captured on
   enable and put back on disable.
 - **Zoom** — hold `C` to zoom, with an adjustable factor and optional easing.
 - **No view bobbing** — stop the camera swaying as you walk.
+- **FOV changer** — set a field of view outside the vanilla range.
 
-### Interface — 1
+### Interface — 2
 
 - **Clean HUD** — hide the crosshair, hotbar, experience bar, health, hunger, armour bar, air
   bubbles, effect icons, scoreboard, boss bar or action bar text, individually and live.
+- **Theme** — switch the interface between the dark, midnight and light palettes.
 
-### Misc — 1
+### Misc — 2
 
+- **Waypoints** — see above.
 - **Discord presence** — see below.
 
 ---
@@ -170,7 +205,9 @@ To run a development client: `./gradlew runClient`.
 Everything is written to:
 
 ```
-.minecraft/config/voidrix/config.json
+.minecraft/config/voidrix/profiles/<name>.json   settings, one file per profile
+.minecraft/config/voidrix/waypoints.json         your waypoints
+.minecraft/config/voidrix/state.json             which profile is active
 ```
 
 Readable and safe to hand-edit. The file is written to a temporary file and moved into place, so a
@@ -197,12 +234,13 @@ Source layout:
 dev.voidrix
 ├── VoidrixClient      entry point, module registry, tick and lifecycle wiring
 ├── VoidrixKeys        the three rebindable key bindings
-├── config             the single local JSON config
+├── config             local JSON config, with profiles
 ├── discord            the Discord IPC client
 ├── module             module base classes and the modules themselves
 ├── setting            typed settings: bool, int, double, enum, colour, string
-├── ui                 theme, drawing primitives, menu, HUD editor
-└── util               keyboard polling, combat observation
+├── ui                 theme, drawing primitives, icons, menu, HUD editor
+├── util               keyboard polling, combat observation
+└── waypoint           waypoint storage
 ```
 
 The interface is drawn from scratch on top of Minecraft's `fill` and `text` calls. Rounded corners,
