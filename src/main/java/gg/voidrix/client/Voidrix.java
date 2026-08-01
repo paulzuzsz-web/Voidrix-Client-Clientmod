@@ -58,7 +58,6 @@ public final class Voidrix implements ClientModInitializer {
         settingsKey = register("key.voidrix.settings", GLFW.GLFW_KEY_RIGHT_SHIFT);
 
         ClientTickEvents.END_CLIENT_TICK.register(Voidrix::onTick);
-        ScreenshotHarness.installIfRequested();
 
         LOGGER.info("{} bereit - Konfiguration: {}", NAME, CONFIG_PATH);
     }

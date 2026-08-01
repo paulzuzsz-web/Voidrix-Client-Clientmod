@@ -25,6 +25,16 @@ Ergebnis: `build/libs/voidrix-client-1.0.0.jar`
 2. [Fabric API](https://modrinth.com/mod/fabric-api) (`0.156.0+26.2`) in den `mods/`-Ordner
 3. `voidrix-client-1.0.0.jar` dazulegen
 
+## Menü
+
+![Reiter Render](docs/images/menu-render.png)
+
+![Reiter HUD](docs/images/menu-hud.png)
+
+![Reiter Steuerung](docs/images/menu-steuerung.png)
+
+Aufnahmen aus dem laufenden Client (Minecraft 26.2, GUI-Skalierung 2).
+
 ## Funktionen
 
 | Feature | Standardtaste | Beschreibung |

@@ -4,6 +4,7 @@ import gg.voidrix.client.Voidrix;
 import gg.voidrix.client.VoidrixConfig;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -114,6 +115,43 @@ public final class VoidrixSettingsScreen extends Screen {
                 v -> config.customWindowTitle = v);
     }
 
+    /**
+     * Tastenbelegungen als reine Anzeige. Bewusst keine Widgets: geaendert wird in den
+     * Vanilla-Steuerungseinstellungen, hier steht nur, was aktuell gebunden ist.
+     */
+    private void renderKeyBindings(GuiGraphicsExtractor g) {
+        record Entry(String label, KeyMapping mapping) {
+        }
+        Entry[] entries = {
+                new Entry("Zoom", Voidrix.zoomKey),
+                new Entry("Fullbright umschalten", Voidrix.fullBrightKey),
+                new Entry("Dieses Menue", Voidrix.settingsKey),
+        };
+
+        int x = contentX();
+        int width = contentWidth();
+        int y = rowY(1) + 8;
+
+        g.text(this.font, "TASTEN", x, y, Theme.TEXT_SECTION);
+        Theme.fadingRule(g, x, y + 10, width, Theme.DIVIDER);
+        y += 18;
+
+        for (Entry entry : entries) {
+            if (entry.mapping() == null) {
+                continue;
+            }
+            g.text(this.font, entry.label(), x + 2, y, Theme.TEXT_MUTED);
+
+            String key = entry.mapping().getTranslatedKeyMessage().getString();
+            int keyWidth = this.font.width(key);
+            int boxX = x + width - keyWidth - 10;
+            Theme.roundedRect(g, boxX, y - 4, keyWidth + 8, 15, Theme.ROW);
+            g.text(this.font, key, boxX + 4, y, Theme.ACCENT);
+
+            y += 20;
+        }
+    }
+
     private void addToggle(int y, String label, BooleanSupplier getter, Consumer<Boolean> setter) {
         this.addRenderableWidget(new ToggleButton(
                 contentX(), y, contentWidth(), ROW_HEIGHT,
@@ -158,6 +196,10 @@ public final class VoidrixSettingsScreen extends Screen {
                 contentX(), panelY + HEADER_HEIGHT + CONTENT_PADDING - 2, Theme.TEXT_SECTION);
         Theme.fadingRule(g, contentX(), panelY + HEADER_HEIGHT + CONTENT_PADDING + 8,
                 contentWidth(), Theme.DIVIDER);
+
+        if (activeTab == 2) {
+            renderKeyBindings(g);
+        }
 
         String hint = switch (activeTab) {
             case 0 -> "C halten zum Zoomen  ·  G schaltet Fullbright";
