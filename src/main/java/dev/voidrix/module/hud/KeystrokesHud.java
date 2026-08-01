@@ -38,7 +38,7 @@ public final class KeystrokesHud extends HudModule {
     private static final int SPACE = 6;
 
     public KeystrokesHud() {
-        super("keystrokes", "Keystrokes", "Shows which movement keys you are pressing", 0.0, 0.62);
+        super("keystrokes", "Keystrokes", "Shows which movement keys you are pressing", 0.0, 0.86);
         this.showMouse = addBool("show_mouse", "Show mouse", "Include the two mouse buttons", true);
         this.showSpace = addBool("show_space", "Show jump", "Include a jump bar", true);
         this.pressedColor = addColor("pressed_color", "Pressed colour", "Fill colour while a key is held", Theme.ACCENT);

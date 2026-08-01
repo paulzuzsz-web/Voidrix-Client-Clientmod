@@ -23,7 +23,7 @@ public final class CooldownHud extends HudModule {
 
     public CooldownHud() {
         super("cooldown", "Attack cooldown", "How far your attack has recharged",
-                Category.COMBAT, 0.5, 0.7);
+                Category.COMBAT, 0.5, 0.66);
         this.barWidth = addInt("width", "Bar width", "Width of the bar in pixels", 80, 30, 200, "px");
         this.showPercent = addBool("percent", "Show percent", "Print the value next to the bar", true);
         this.hideWhenReady = addBool("hide_ready", "Hide when full", "Only show while recharging", false);

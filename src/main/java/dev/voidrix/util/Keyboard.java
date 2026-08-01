@@ -44,6 +44,22 @@ public final class Keyboard {
         previous.remove(id);
     }
 
+    /** Whether either Control key is held, for chord shortcuts. */
+    public static boolean ctrlHeld() {
+        return isDown(GLFW.GLFW_KEY_LEFT_CONTROL) || isDown(GLFW.GLFW_KEY_RIGHT_CONTROL);
+    }
+
+    /**
+     * True on the frame {@code key} goes down while Control is held.
+     *
+     * <p>Polled rather than registered as a key binding because Minecraft's bindings are single
+     * keys - there is no way to express a chord through them.
+     */
+    public static boolean ctrlChord(String id, int key) {
+        boolean pressed = justPressed(id, key);
+        return pressed && ctrlHeld();
+    }
+
     /** Human readable name for a key, for showing the current binding in the menu. */
     public static String nameOf(int keyCode) {
         if (keyCode <= 0) {

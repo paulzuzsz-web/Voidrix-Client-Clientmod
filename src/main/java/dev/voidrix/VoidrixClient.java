@@ -7,7 +7,12 @@ import dev.voidrix.module.hud.ArmorHud;
 import dev.voidrix.module.hud.BiomeHud;
 import dev.voidrix.module.hud.ClockHud;
 import dev.voidrix.module.hud.CoordinatesHud;
+import dev.voidrix.module.hud.CompassHud;
 import dev.voidrix.module.hud.CpsHud;
+import dev.voidrix.module.hud.CrosshairHud;
+import dev.voidrix.module.hud.ExperienceHud;
+import dev.voidrix.module.hud.HealthHud;
+import dev.voidrix.module.hud.HungerHud;
 import dev.voidrix.module.hud.DirectionHud;
 import dev.voidrix.module.hud.DurabilityHud;
 import dev.voidrix.module.hud.EffectsHud;
@@ -30,6 +35,7 @@ import dev.voidrix.module.combat.SaturationHud;
 import dev.voidrix.module.combat.TargetHud;
 import dev.voidrix.module.iface.CleanHudModule;
 import dev.voidrix.module.misc.DiscordModule;
+import dev.voidrix.module.misc.DropStackModule;
 import dev.voidrix.module.iface.ThemeModule;
 import dev.voidrix.module.misc.WaypointsModule;
 import dev.voidrix.module.visual.FovModule;
@@ -71,6 +77,7 @@ public final class VoidrixClient implements ClientModInitializer {
     private DiscordModule discord;
     private ThemeModule theme;
     private static WaypointsModule waypointsModule;
+    private static DropStackModule dropStack;
 
     public static ModuleManager modules() {
         return modules;
@@ -82,6 +89,11 @@ public final class VoidrixClient implements ClientModInitializer {
 
     public static WaypointManager waypoints() {
         return waypoints;
+    }
+
+    /** The drop-stack module, reached from the mixin that rewrites the drop argument. */
+    public static DropStackModule dropStack() {
+        return dropStack;
     }
 
     /** The waypoint renderer, so the HUD pass can hand it a frame. */
@@ -135,6 +147,7 @@ public final class VoidrixClient implements ClientModInitializer {
         discord = new DiscordModule();
         theme = new ThemeModule();
         waypointsModule = new WaypointsModule();
+        dropStack = new DropStackModule();
 
         modules.registerAll(
                 // HUD widgets
@@ -158,6 +171,11 @@ public final class VoidrixClient implements ClientModInitializer {
                 new WeatherHud(),
                 new ServerHud(),
                 new PlayerCountHud(),
+                new HealthHud(),
+                new HungerHud(),
+                new ExperienceHud(),
+                new CompassHud(),
+                new CrosshairHud(),
 
                 // Combat - all read-only readouts, nothing that changes how you fight
                 new TargetHud(),
@@ -178,11 +196,19 @@ public final class VoidrixClient implements ClientModInitializer {
 
                 // Misc
                 waypointsModule,
+                dropStack,
                 discord
         );
     }
 
     private void onTick(Minecraft mc) {
+        // Ctrl+V opens the menu as well as the bound key. Gated on the mouse being grabbed, so it
+        // can never fire while a text field somewhere is expecting a paste.
+        if (mc.mouseHandler.isMouseGrabbed()
+                && Keyboard.ctrlChord("menu_chord", org.lwjgl.glfw.GLFW.GLFW_KEY_V)) {
+            mc.setScreenAndShow(new MenuScreen());
+            return;
+        }
         if (VoidrixKeys.openMenu.consumeClick()) {
             mc.setScreenAndShow(new MenuScreen());
         }

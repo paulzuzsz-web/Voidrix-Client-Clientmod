@@ -24,9 +24,9 @@ them off to begin with. Nothing else in the mod opens a network connection.
 
 ## What it does
 
-### The menu — `Right Shift`
+### The menu — `Ctrl+V` or `Right Shift`
 
-An icon rail down the left picks the category, tabs across the top switch between **Mods**,
+`Ctrl+V` opens it, and so does the bound key. An icon rail down the left picks the category, tabs across the top switch between **Mods**,
 **Profiles** and **Waypoints**, and the body is a grid of cards. Click a card to open that module's
 settings in place; the toggle on the card flips it without leaving the grid. The search box filters
 across every category at once.
@@ -82,9 +82,9 @@ stays centred.
 
 ## Modules
 
-33 in total, across five categories.
+39 in total, across five categories.
 
-### HUD — 20 widgets
+### HUD — 25 widgets
 
 ![The HUD in game](docs/hud.png)
 
@@ -101,7 +101,7 @@ stays centred.
 | Memory | Heap usage as a percentage, megabytes, or both |
 | CPS | Clicks per second, sampled per frame so fast clicks are not missed |
 | Keystrokes | WASD, mouse buttons and jump, each fading as it is pressed |
-| Armour | Equipped armour and held item with durability |
+| Armour status | Armour and held items, each with a colour-graded durability bar, a figure, and a pulse once a piece is nearly gone |
 | Effects | Active potion effects, soonest to expire first |
 | Durability | Remaining uses on your held item |
 | Held item | What you are holding and how many you own in total |
@@ -110,6 +110,11 @@ stays centred.
 | Weather | Clear, rain or thunder |
 | Server | Address of the server you are on |
 | Players | How many players are online |
+| Health | Your health as a number, graded green to red |
+| Hunger | Your food level as a number |
+| Experience | Level and progress into the next |
+| Compass | A sliding compass strip with a fixed needle and bearing |
+| Crosshair | Your own crosshair: cross, T, circle or dot, with size, gap, thickness and colour |
 
 ### Combat — 5 widgets
 
@@ -128,6 +133,8 @@ assist and no reach extension in Voidrix, and there will not be.
 | Reach | How far away your last landed hit was |
 | Saturation | Your own hidden food buffer, the one vanilla tracks but never draws |
 
+![Armour status](docs/armor-status.png)
+
 ### Visual — 4
 
 - **Fullbright** — raise brightness past the vanilla ceiling. Your original value is captured on
@@ -142,9 +149,12 @@ assist and no reach extension in Voidrix, and there will not be.
   bubbles, effect icons, scoreboard, boss bar or action bar text, individually and live.
 - **Theme** — switch the interface between the dark, midnight and light palettes.
 
-### Misc — 2
+### Misc — 3
 
 - **Waypoints** — see above.
+- **Drop stack** — the drop key throws the whole stack. Vanilla puts that behind Control, which is
+  the wrong way round for anyone clearing an inventory; hold Control to drop a single item instead,
+  so nothing is taken away.
 - **Discord presence** — see below.
 
 ---
@@ -218,10 +228,10 @@ parse falls back to its default rather than resetting the rest.
 
 ## How it is put together
 
-- **No mixins.** Voidrix touches nothing in Minecraft's internals. HUD widgets are registered as a
-  single Fabric HUD element, and hiding vanilla elements works by wrapping them through Fabric's own
-  registry rather than cancelling their draw calls. That keeps it compatible with other mods and
-  means a Minecraft update is far less likely to break it.
+- **Almost no mixins.** Exactly one, and it rewrites a single boolean argument. HUD widgets are
+  registered as one Fabric HUD element, and hiding vanilla elements works by wrapping them through
+  Fabric's own registry rather than cancelling their draw calls. That keeps Voidrix compatible with
+  other mods and makes a Minecraft update far less likely to break it.
 - **One dependency.** Fabric API, nothing else — no Kotlin runtime, no UI library, no Discord
   library.
 - **A widget that throws is switched off, not fatal.** A crash inside a widget's render would

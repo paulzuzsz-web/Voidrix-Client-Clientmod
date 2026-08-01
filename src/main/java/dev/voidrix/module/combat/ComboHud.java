@@ -9,7 +9,7 @@ import dev.voidrix.util.CombatTracker;
 public final class ComboHud extends SimpleHudModule {
     public ComboHud() {
         super("combo", "Combo", "Consecutive hits on your current target",
-                Category.COMBAT, 0.5, 0.62, Theme.TEXT);
+                Category.COMBAT, 0.5, 0.60, Theme.TEXT);
     }
 
     @Override

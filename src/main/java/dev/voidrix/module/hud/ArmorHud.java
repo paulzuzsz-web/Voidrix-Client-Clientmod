@@ -14,57 +14,95 @@ import net.minecraft.world.item.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Your equipped armour and held item, with remaining durability. */
+/**
+ * Armour status: what you are wearing, what you are holding, and how much life each piece has left.
+ *
+ * <p>The durability bar is drawn here rather than left to the vanilla item decoration, because the
+ * vanilla one is three pixels tall, sits under the icon and is the same shade of green until the
+ * item is nearly gone. This one is full width, colour-graded the whole way down, and can show the
+ * exact figure next to it - which is the difference between noticing a helmet is about to break and
+ * finding out when it does.
+ */
 public final class ArmorHud extends HudModule {
-    private static final int SLOT = 16;
-    private static final int GAP = 3;
+    private static final int SLOT = 18;
 
     private static final EquipmentSlot[] ARMOUR = {
             EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET
     };
 
     private final EnumSetting<Layout> layout;
-    private final BoolSetting includeHand;
-    private final BoolSetting showDurability;
+    private final EnumSetting<Readout> readout;
+    private final BoolSetting includeMainHand;
+    private final BoolSetting includeOffHand;
+    private final BoolSetting durabilityBar;
     private final BoolSetting hideEmpty;
+    private final BoolSetting warnLow;
+    private final BoolSetting showCount;
 
     public ArmorHud() {
-        super("armor", "Armour", "Equipped armour and its durability", 0.5, 0.85);
-        this.layout = addEnum("layout", "Layout", "Stack the pieces or lay them out in a row", Layout.HORIZONTAL);
-        this.includeHand = addBool("include_hand", "Include held item", "Also show what is in your main hand", true);
-        this.showDurability = addBool("durability", "Show durability", "Print remaining uses under each piece", true);
+        super("armor", "Armour status", "Your armour and held items, with durability", 0.5, 0.88);
+        this.layout = addEnum("layout", "Layout", "Lay the pieces out in a row or a column", Layout.HORIZONTAL);
+        this.readout = addEnum("readout", "Durability text", "How to print the remaining durability",
+                Readout.PERCENT);
+        this.durabilityBar = addBool("bar", "Durability bar", "Draw a graded bar under each piece", true);
+        this.includeMainHand = addBool("main_hand", "Include main hand", "Also show your held item", true);
+        this.includeOffHand = addBool("off_hand", "Include off hand", "Also show your off-hand item", false);
         this.hideEmpty = addBool("hide_empty", "Hide empty slots", "Skip slots with nothing in them", true);
+        this.warnLow = addBool("warn_low", "Flash when nearly broken",
+                "Pulse a piece once it drops below a tenth of its durability", true);
+        this.showCount = addBool("show_count", "Show stack size", "Print the count for stacked items", true);
     }
 
     /** The stacks to draw, in display order, after applying the empty-slot filter. */
     private List<ItemStack> stacks() {
-        List<ItemStack> out = new ArrayList<>(5);
+        List<ItemStack> out = new ArrayList<>(6);
         var player = Minecraft.getInstance().player;
         if (player == null) {
             return out;
         }
         for (EquipmentSlot slot : ARMOUR) {
-            ItemStack stack = player.getItemBySlot(slot);
-            if (!stack.isEmpty() || !hideEmpty.value()) {
-                out.add(stack);
-            }
+            add(out, player.getItemBySlot(slot));
         }
-        if (includeHand.value()) {
-            ItemStack hand = player.getMainHandItem();
-            if (!hand.isEmpty() || !hideEmpty.value()) {
-                out.add(hand);
-            }
+        if (includeMainHand.value()) {
+            add(out, player.getMainHandItem());
+        }
+        if (includeOffHand.value()) {
+            add(out, player.getItemBySlot(EquipmentSlot.OFFHAND));
         }
         return out;
+    }
+
+    private void add(List<ItemStack> out, ItemStack stack) {
+        if (!stack.isEmpty() || !hideEmpty.value()) {
+            out.add(stack);
+        }
     }
 
     private boolean horizontal() {
         return layout.value() == Layout.HORIZONTAL;
     }
 
-    /** Height of one cell, including the durability line when it is switched on. */
+    private boolean anyText() {
+        return readout.value() != Readout.NONE;
+    }
+
+    /** Width of one cell: the icon, plus room for the figure when it sits beside it. */
+    private int cellWidth(Font font) {
+        if (horizontal()) {
+            return Math.max(SLOT, anyText() ? font.width("100%") : 0);
+        }
+        return SLOT + (anyText() ? 4 + font.width("1000/1000") : 0);
+    }
+
     private int cellHeight(Font font) {
-        return SLOT + (showDurability.value() ? font.lineHeight + 1 : 0);
+        int h = SLOT;
+        if (durabilityBar.value()) {
+            h += 4;
+        }
+        if (horizontal() && anyText()) {
+            h += font.lineHeight;
+        }
+        return h;
     }
 
     @Override
@@ -75,64 +113,122 @@ public final class ArmorHud extends HudModule {
     @Override
     public int contentWidth(Font font) {
         int count = Math.max(1, stacks().size());
-        if (horizontal()) {
-            return count * SLOT + (count - 1) * GAP;
-        }
-        return SLOT + (showDurability.value() ? GAP + font.width("100%") : 0);
+        int cell = cellWidth(font);
+        return horizontal() ? count * cell + (count - 1) * 4 : cell;
     }
 
     @Override
     public int contentHeight(Font font) {
         int count = Math.max(1, stacks().size());
-        if (horizontal()) {
-            return cellHeight(font);
-        }
-        return count * SLOT + (count - 1) * GAP;
+        int cell = cellHeight(font);
+        return horizontal() ? cell : count * cell + (count - 1) * 3;
     }
 
     @Override
     public void renderContent(GuiGraphicsExtractor g, Font font) {
         List<ItemStack> stacks = stacks();
+        int cellW = cellWidth(font);
+        int cellH = cellHeight(font);
+
         for (int i = 0; i < stacks.size(); i++) {
             ItemStack stack = stacks.get(i);
-            int x = horizontal() ? i * (SLOT + GAP) : 0;
-            int y = horizontal() ? 0 : i * (SLOT + GAP);
-
-            if (!stack.isEmpty()) {
-                g.item(stack, x, y);
-                g.itemDecorations(font, stack, x, y);
-            } else {
-                Draw.roundRect(g, x, y, SLOT, SLOT, Theme.RADIUS_SM, 0x40FFFFFF);
-            }
-
-            if (showDurability.value() && stack.isDamageableItem()) {
-                drawDurability(g, font, stack, x, y);
-            }
+            int x = horizontal() ? i * (cellW + 4) : 0;
+            int y = horizontal() ? 0 : i * (cellH + 3);
+            drawCell(g, font, stack, x, y, cellW);
         }
     }
 
-    private void drawDurability(GuiGraphicsExtractor g, Font font, ItemStack stack, int x, int y) {
-        int max = stack.getMaxDamage();
-        if (max <= 0) {
+    private void drawCell(GuiGraphicsExtractor g, Font font, ItemStack stack, int x, int y, int cellW) {
+        int iconX = horizontal() ? x + (cellW - SLOT) / 2 : x;
+
+        if (stack.isEmpty()) {
+            Draw.roundRectOutline(g, iconX + 1, y + 1, SLOT - 2, SLOT - 2, Theme.RADIUS_SM, 1f,
+                    Theme.alpha(Theme.BORDER, 0.8f));
             return;
         }
-        int left = max - stack.getDamageValue();
-        float fraction = (float) left / max;
-        String text = Math.round(fraction * 100f) + "%";
 
-        int color = fraction > 0.5f ? Theme.SUCCESS : (fraction > 0.2f ? Theme.WARN : Theme.DANGER);
-        float tx = horizontal() ? x + (SLOT - font.width(text)) / 2f : x + SLOT + GAP;
-        float ty = horizontal() ? y + SLOT + 1f : y + (SLOT - font.lineHeight) / 2f;
+        boolean damageable = stack.isDamageableItem();
+        float fraction = damageable ? remaining(stack) : 1f;
+        int gradeColor = grade(fraction);
 
-        if (useShadow()) {
-            Draw.textShadow(g, font, text, tx, ty, color);
-        } else {
-            Draw.text(g, font, text, tx, ty, color);
+        // Pulse the frame of a piece that is about to go.
+        if (warnLow.value() && damageable && fraction <= 0.1f) {
+            float pulse = 0.35f + 0.35f * (float) Math.sin(System.currentTimeMillis() / 180.0);
+            Draw.roundRect(g, iconX - 1, y - 1, SLOT + 2, SLOT + 2, Theme.RADIUS_SM,
+                    Theme.alpha(Theme.DANGER, pulse));
         }
+
+        g.item(stack, iconX + 1, y + 1);
+        if (showCount.value() && stack.getCount() > 1) {
+            g.itemDecorations(font, stack, iconX + 1, y + 1);
+        }
+
+        if (!damageable) {
+            return;
+        }
+
+        int textY = y + SLOT;
+        if (durabilityBar.value()) {
+            float barW = SLOT - 2;
+            Draw.roundRect(g, iconX + 1, y + SLOT, barW, 2.5f, 1.25f, 0xC023232F);
+            Draw.roundRect(g, iconX + 1, y + SLOT, barW * fraction, 2.5f, 1.25f, gradeColor);
+            textY += 4;
+        }
+
+        String text = text(stack, fraction);
+        if (text.isEmpty()) {
+            return;
+        }
+        if (horizontal()) {
+            float tx = x + (cellW - font.width(text)) / 2f;
+            drawText(g, font, text, tx, textY, gradeColor);
+        } else {
+            float tx = iconX + SLOT + 4;
+            drawText(g, font, text, tx, y + (SLOT - font.lineHeight) / 2f, gradeColor);
+        }
+    }
+
+    private void drawText(GuiGraphicsExtractor g, Font font, String text, float x, float y, int color) {
+        if (useShadow()) {
+            Draw.textShadow(g, font, text, x, y, color);
+        } else {
+            Draw.text(g, font, text, x, y, color);
+        }
+    }
+
+    private String text(ItemStack stack, float fraction) {
+        int max = stack.getMaxDamage();
+        int left = max - stack.getDamageValue();
+        return switch (readout.value()) {
+            case NONE -> "";
+            case PERCENT -> Math.round(fraction * 100f) + "%";
+            case REMAINING -> String.valueOf(left);
+            case FRACTION -> left + "/" + max;
+        };
+    }
+
+    private static float remaining(ItemStack stack) {
+        int max = stack.getMaxDamage();
+        return max <= 0 ? 1f : (float) (max - stack.getDamageValue()) / max;
+    }
+
+    /** Green through amber to red, so the colour alone tells you how worried to be. */
+    private static int grade(float fraction) {
+        if (fraction > 0.5f) {
+            return Theme.mix(Theme.WARN, Theme.SUCCESS, (fraction - 0.5f) * 2f);
+        }
+        return Theme.mix(Theme.DANGER, Theme.WARN, fraction * 2f);
     }
 
     public enum Layout {
         HORIZONTAL,
         VERTICAL
+    }
+
+    public enum Readout {
+        PERCENT,
+        REMAINING,
+        FRACTION,
+        NONE
     }
 }

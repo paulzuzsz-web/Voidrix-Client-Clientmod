@@ -14,7 +14,7 @@ import net.minecraft.client.Minecraft;
 public final class SaturationHud extends SimpleHudModule {
     public SaturationHud() {
         super("saturation", "Saturation", "The hidden buffer behind your hunger bar",
-                Category.COMBAT, 0.5, 0.78, Theme.TEXT);
+                Category.COMBAT, 0.5, 0.72, Theme.TEXT);
     }
 
     private static float saturation() {
