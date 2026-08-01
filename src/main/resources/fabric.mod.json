@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "voidrix",
+  "version": "${version}",
+  "name": "Voidrix Client",
+  "description": "Voidrix Client - Zoom, Fullbright, HUD und weitere clientseitige Verbesserungen.",
+  "authors": [
+    "Voidrix Team"
+  ],
+  "license": "ARR",
+  "icon": "assets/voidrix/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "gg.voidrix.client.Voidrix"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "voidrix.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "minecraft": "26.2",
+    "fabricloader": ">=0.19.0",
+    "fabric-api": "*"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "gg.voidrix.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [],
+  "client": [
+    "CameraZoomMixin",
+    "FullBrightMixin",
+    "HudOverlayMixin",
+    "NoHurtCamMixin",
+    "WindowTitleMixin"
+  ]
+}

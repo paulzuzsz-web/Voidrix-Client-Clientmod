@@ -1,10 +1,10 @@
 # Voidrix Client — Clientmodul: Wie es funktioniert
 
-Analyse des entpackten JARs unter [`../client/`](../client).
+Analyse des entpackten JARs unter [`../reference/`](../reference).
 
 | | |
 |---|---|
-| Mod-ID | `nrcclient` |
+| Mod-ID | `voidrix` |
 | Name | Voidrix Client |
 | Version | `26.3.1663417-working+fabric.26.2` |
 | Minecraft | 26.2 |
@@ -24,16 +24,16 @@ Sie sind lesbar, aber nicht ohne Weiteres kompilierbar.
 ## 1. Einordnung: nur ein Modul von mehreren
 
 `fabric.mod.json` beschreibt das Modul als *"Client module implementations for Voidrix Client"*.
-Der Paketbaum bestätigt das — alles unter `gg.norisk.client.*` liegt hier, aber der Code
+Der Paketbaum bestätigt das — alles unter `gg.voidrix.client.*` liegt hier, aber der Code
 importiert massiv aus Paketen, die **nicht** im JAR sind:
 
 | Paket | Rolle | im JAR? |
 |---|---|---|
-| `gg.norisk.client.*` | Feature-Implementierungen | ✅ dieses Modul |
-| `gg.norisk.compat.*` | Versionsabstraktion (`MCClient`, `ClientEvents`, `MCLogger`, `NoriskAuth`, `NrcWebSocketClient`, `NrcReflectionUtil`) | ❌ separat |
-| `gg.norisk.ui.*` | Modul-/Wert-API, HUD-Framework, Keybinds, Themes, Toasts | ❌ separat |
-| `gg.norisk.cosmetics.*` | Cosmetics, Emotes, NRCPlus | ❌ separat |
-| `gg.norisk.owolib.owo.ui.*` | geshadetes owo-lib für UI-Layouts | ❌ separat |
+| `gg.voidrix.client.*` | Feature-Implementierungen | ✅ dieses Modul |
+| `gg.voidrix.compat.*` | Versionsabstraktion (`MCClient`, `ClientEvents`, `MCLogger`, `VoidrixAuth`, `VoidrixWebSocketClient`, `VoidrixReflectionUtil`) | ❌ separat |
+| `gg.voidrix.ui.*` | Modul-/Wert-API, HUD-Framework, Keybinds, Themes, Toasts | ❌ separat |
+| `gg.voidrix.cosmetics.*` | Cosmetics, Emotes, VoidrixPlus | ❌ separat |
+| `gg.voidrix.owolib.owo.ui.*` | geshadetes owo-lib für UI-Layouts | ❌ separat |
 
 Der Launcher lädt also mehrere JARs; dieses hier ist das Feature-Paket.
 
@@ -56,31 +56,31 @@ Der Launcher lädt also mehrere JARs; dieses hier ist das Feature-Paket.
 Es gibt **keinen** klassischen `client`-Entrypoint in `fabric.mod.json`. Der Start läuft über
 drei Wege:
 
-1. **ServiceLoader** — `META-INF/services/gg.norisk.compat.bootstrap.NrcBootstrap`
-   registriert `gg.norisk.client.bootstrap.ClientBootstrap`.
-   Die Compat-Schicht sammelt alle `NrcBootstrap`-Implementierungen ein und ruft sie nach
+1. **ServiceLoader** — `META-INF/services/gg.voidrix.compat.bootstrap.VoidrixBootstrap`
+   registriert `gg.voidrix.client.bootstrap.ClientBootstrap`.
+   Die Compat-Schicht sammelt alle `VoidrixBootstrap`-Implementierungen ein und ruft sie nach
    `priority()` (hier `100`) in `onEarlyInit()` auf.
-2. **Mixin-Plugin** — `nrcclient.mixins.json` nennt `gg.norisk.compat.mixin.NrcCompatMixinPlugin`
+2. **Mixin-Plugin** — `voidrix.mixins.json` nennt `gg.voidrix.compat.mixin.VoidrixCompatMixinPlugin`
    als `plugin`; damit entscheidet Code zur Ladezeit, welche Mixins überhaupt angewendet werden.
-3. **`mixinsquared`-Entrypoint** — `gg.norisk.client.v2.plugin.NrcMixinCanceller` (siehe 5.2).
+3. **`mixinsquared`-Entrypoint** — `gg.voidrix.client.v2.plugin.VoidrixMixinCanceller` (siehe 5.2).
 
-`gg.norisk.client.forge.ClientForgeEntrypoint` und `NoOpWindowProvider` sind leere Klassen —
+`gg.voidrix.client.forge.ClientForgeEntrypoint` und `NoOpWindowProvider` sind leere Klassen —
 Platzhalter für einen Forge-Port, der hier nicht implementiert ist. `NoOpWindowProvider` ist
 trotzdem als `ImmediateWindowProvider`-Service eingetragen (unterdrückt Forges frühes Ladefenster).
 
 ### 2.2 Was `ClientBootstrap.initBootstrap()` macht
 
-`client/gg/norisk/client/bootstrap/ClientBootstrap.kt` ist der zentrale Startpunkt. In Reihenfolge:
+`reference/gg/voidrix/client/bootstrap/ClientBootstrap.kt` ist der zentrale Startpunkt. In Reihenfolge:
 
 ```kotlin
-NoriskTokenManager.INSTANCE.ensureStarted()      // Auth-Token besorgen/erneuern
-NrcWebSocketClient.INSTANCE.ensureAutoConnect()  // WebSocket zum Backend
-NrcAnalytics.init()                              // Telemetrie
+VoidrixTokenManager.INSTANCE.ensureStarted()      // Auth-Token besorgen/erneuern
+VoidrixWebSocketClient.INSTANCE.ensureAutoConnect()  // WebSocket zum Backend
+VoidrixAnalytics.init()                              // Telemetrie
 V3Preload.INSTANCE.register()                    // UI-Vorladen
 ```
 
 Danach werden ~72 Modulklassen **per Reflection** über ihren voll qualifizierten Namen geladen
-(`NrcReflectionUtil.tryLoadObject(...)`), gefiltert auf die, die tatsächlich existieren, und mit
+(`VoidrixReflectionUtil.tryLoadObject(...)`), gefiltert auf die, die tatsächlich existieren, und mit
 `ModuleProvider.registerAll(...)` registriert. Das ist der Grund für die Reflection: fehlende
 Module (z. B. weil ein Modul in dieser Version fehlt oder ein Drittanbieter-Mod nicht installiert
 ist) führen nicht zum Absturz, sondern werden still übersprungen.
@@ -105,8 +105,8 @@ Anschließend:
 
 ## 3. Das Modulsystem
 
-Jedes Feature ist ein Kotlin-`object`, das von einer Basisklasse aus `gg.norisk.ui.api` erbt.
-Beispiel `client/gg/norisk/client/v2/modules/ping/PingHud.kt`:
+Jedes Feature ist ein Kotlin-`object`, das von einer Basisklasse aus `gg.voidrix.ui.api` erbt.
+Beispiel `reference/gg/voidrix/client/v2/modules/ping/PingHud.kt`:
 
 ```kotlin
 public object PingHud : SingleTextHud("Ping", "{ping} ms", ...) {
@@ -128,7 +128,7 @@ Drei Bausteine:
 * **`@Category(name = ...)`** — gruppiert Settings in der GUI.
 
 Gerendert wird mit **owo-lib** (`FlowLayout`, `LabelComponent`, `UIComponents`), geshaded als
-`gg.norisk.owolib.owo.*`.
+`gg.voidrix.owolib.owo.*`.
 
 ### Registrierte Module (aus `ClientBootstrap`)
 
@@ -145,7 +145,7 @@ CustomCrosshair, ClearBackgroundModule, OldAnimationsModule, NoHurtCam, IconModu
 AutoReconnect, WeatherChanger, TimeChanger, TntTimer, NoAdvancementModule, ChatHeads,
 BorderlessFullscreenModule, StreamerMode, PackTweaks, LoadingScreenTipsModule,
 ResourcePackOrganizerModule, BadOptimizationsModule, ScreenshotModule, WaypointModule,
-DiscordIntegrationModule, ProfilesModule, NRCPlusModule
+DiscordIntegrationModule, ProfilesModule, VoidrixPlusModule
 
 **Drittanbieter-Bridges:** SaturationModule, ShulkerPreviewModule, ThreeDSkinModule,
 TiersModule, HealthIndicatorsModule, WaveyCapesModule
@@ -156,8 +156,8 @@ Zusätzlich `DummyModule`, aber nur wenn `DevAuth.isEnabled`.
 
 ## 4. Die Mixins
 
-`nrcclient.mixins.json` listet **153 Client-Mixins** in 43 Feature-Paketen unter
-`gg.norisk.client.v2.mixin`. `"required": false` bedeutet: schlägt ein Mixin fehl, stürzt das
+`voidrix.mixins.json` listet **153 Client-Mixins** in 43 Feature-Paketen unter
+`gg.voidrix.client.v2.mixin`. `"required": false` bedeutet: schlägt ein Mixin fehl, stürzt das
 Spiel nicht ab. `compatibilityLevel: JAVA_21`.
 
 Die größten Gruppen:
@@ -199,8 +199,8 @@ Weil `fabric.loom.disableObfuscation=true` gesetzt ist, laufen Mojang-Namen bis 
 
 Drei Stellen ersetzen Vanilla-Branding:
 
-* `BrandingClientBrandRetrieverMixin` — `getClientModName()` liefert `nrc:<version>`;
-  auf Experimental-Servern mit `§c`-Präfix (rot). Server sehen also den Client-Brand `nrc`.
+* `BrandingClientBrandRetrieverMixin` — `getClientModName()` liefert `voidrix:<version>`;
+  auf Experimental-Servern mit `§c`-Präfix (rot). Server sehen also den Client-Brand `voidrix`.
 * `WindowTitleMixin` — bricht `Window.setTitle()` ab und setzt stattdessen
   `WindowTitleModule.getTitle()`.
 * `MojangSplashOverlayMixin` — ersetzt den weißen Mojang-Splash-Hintergrund durch
@@ -209,9 +209,9 @@ Drei Stellen ersetzen Vanilla-Branding:
 
 ### 4.3 Post-Processing-Shader
 
-`assets/noriskclient/`:
+`assets/voidrix/`:
 
-* `shaders/post/nrc_saturation.fsh` + `post_effect/color_saturation.json` — Sättigungsregler
+* `shaders/post/voidrix_saturation.fsh` + `post_effect/color_saturation.json` — Sättigungsregler
 * `shaders/post/motion_blur_simple.fsh` + `post_effect/motion_blur_simple.json` — Motion Blur
 * `shaders/post/blit.fsh` — Hilfs-Blit
 
@@ -219,16 +219,16 @@ Angesteuert von `colorsaturation.*` und `motionblur.*`-Mixins über `PostPass`/`
 
 ### 4.4 Waypoints
 
-`gg.norisk.client.v2.waypoints` ist ein eigenes Subsystem:
+`gg.voidrix.client.v2.waypoints` ist ein eigenes Subsystem:
 `PersistentWaypointStore` (Speicherung unter `VoidrixClient/waypoints`), `PersistentWaypointRenderer`,
 `DeathWaypointHandler` (setzt automatisch einen Deathpoint), `DestinationWaypointHandler`
 (Ankunftserkennung), `WaypointCommand`, `WaypointColors` — plus eine **Xaero-Bridge**
-(`waypoints/xaero`, Logger `Voidrix-NrcToXaeroBridge`, `Voidrix-XaeroSource`), die Waypoints
+(`waypoints/xaero`, Logger `Voidrix-VoidrixToXaeroBridge`, `Voidrix-XaeroSource`), die Waypoints
 mit Xaero's Minimap synchronisiert.
 
 ### 4.5 Server-Styling
 
-`gg.norisk.client.v2.serverstyling` lädt ein `ServerStyleManifest` (mit `StyledServer`, `Assets`,
+`gg.voidrix.client.v2.serverstyling` lädt ein `ServerStyleManifest` (mit `StyledServer`, `Assets`,
 `Gamemode`, `Socials`) und stylt damit die Multiplayer-Liste: Banner, Farben, Gamemodes,
 beworbene Server (`PromotedServerMixin`, `PromotedServerMotdMixin`). `PromotedServerVisibility`
 referenziert `https://norisk.host`.
@@ -240,7 +240,7 @@ Server können Features des Clients abschalten.
 
 ### 4.6 Drittanbieter-Kompatibilität
 
-`gg.norisk.client.v2.mixin.compat` behandelt: **Iris** (Shader), **ImmediatelyFast**
+`gg.voidrix.client.v2.mixin.compat` behandelt: **Iris** (Shader), **ImmediatelyFast**
 (Renderoptimierung), **Xaero** (Minimap), **3D Skin Layers**, **Tiers**, **HealthIndicators**.
 Die passenden `modules/thirdparty/*Module`-Klassen bekommen in `ClientBootstrap` ein
 `initHooks()` per Reflection — vorhanden oder nicht, beides ist ok.
@@ -251,19 +251,19 @@ Die passenden `modules/thirdparty/*Module`-Klassen bekommen in `ClientBootstrap`
 
 ### 5.1 Analytics
 
-`gg/norisk/client/v2/analytics/NrcAnalytics.kt` + `NrcAnalyticsConfig.kt`:
+`reference/gg/voidrix/client/v2/analytics/VoidrixAnalytics.kt` + `VoidrixAnalyticsConfig.kt`:
 
 * Endpoint: `https://analytics-api-staging.norisk.gg/api/track`, lokal `http://127.0.0.1:8080`
 * Nutzer-ID: `AnalyticsUtils.generatePersistentUserId()` + `systemProperties()`
 * Getrackt werden Server-Join/Disconnect, Modul-Toggles, Theme-Wechsel, Emote-Auswahl und
   Cosmetic-Equip — jeweils mit 1000 ms Debounce pro Schlüssel
-* **Standardmäßig aus.** `isEnabled()` liefert nur `true`, wenn `-Dnorisk.analytics.enabled=true`
-  gesetzt ist oder `DevAuth.isEnabled`. URL überschreibbar via `-Dnorisk.analytics.url`.
+* **Standardmäßig aus.** `isEnabled()` liefert nur `true`, wenn `-Dvoidrix.analytics.enabled=true`
+  gesetzt ist oder `DevAuth.isEnabled`. URL überschreibbar via `-Dvoidrix.analytics.url`.
 
 ### 5.2 Mixin-Canceller
 
-`gg/norisk/client/v2/plugin/NrcMixinCanceller.kt` implementiert `MixinCanceller` aus
-mixinsquared. Er lädt zur Laufzeit `noriskclient:mixin_cancellor.json` (über `NrcAssetReader`,
+`reference/gg/voidrix/client/v2/plugin/VoidrixMixinCanceller.kt` implementiert `MixinCanceller` aus
+mixinsquared. Er lädt zur Laufzeit `voidrix:mixin_cancellor.json` (über `VoidrixAssetReader`,
 also aus dem Cache/Backend nachladbar) mit einer Liste von Mixin-Klassennamen und
 Regex-Paketmustern, die deaktiviert werden sollen. Fehlt die Datei, gelten Defaults.
 Fest verdrahtet abgeschaltet sind zwei ImmediatelyFast-Mixins zum Font-Atlas-Resizing.
@@ -273,22 +273,22 @@ Client neu auszuliefern — der Weg, um Konflikte mit anderen Mods zu entschärf
 
 ### 5.3 Auth und Accounts
 
-* `NoriskTokenManager` (Compat-Modul) hält den Backend-Token
-* `gg.norisk.client.v2.auth` — `AccountSelectScreen`, `AccountSwitcherComponent/Button/Layer`,
+* `VoidrixTokenManager` (Compat-Modul) hält den Backend-Token
+* `gg.voidrix.client.v2.auth` — `AccountSelectScreen`, `AccountSwitcherComponent/Button/Layer`,
   `SessionAccountMemory`: Account-Wechsel im laufenden Spiel
 * `modules/reauth/SessionReauth.kt` — erkennt an Disconnect-Texten (`AUTH_FAIL_MARKERS`)
   abgelaufene Sessions und bietet einen Reauth-Button samt `SessionSwapper` an
 
 ### 5.4 Moderation
 
-`gg.norisk.client.v2.moderation` enthält `PunishCommand` und `ReportCommand` — clientseitig
+`gg.voidrix.client.v2.moderation` enthält `PunishCommand` und `ReportCommand` — clientseitig
 registrierte Brigadier-Commands, die Requests ans Backend schicken und das Ergebnis als Toast
 zeigen (inkl. `vcPardon`). Das sind Staff-Werkzeuge; sichtbar/nutzbar sind sie nur mit
 entsprechender Backend-Berechtigung.
 
 ### 5.5 Screenshot-Upload
 
-`gg/norisk/client/v2/screenshot/LitterboxUploader.kt` lädt Screenshots zu
+`reference/gg/voidrix/client/v2/screenshot/LitterboxUploader.kt` lädt Screenshots zu
 `https://litterbox.catbox.moe/resources/internals/api.php` hoch (temporärer Filehost) und legt
 den Link in die Zwischenablage. `ScreenshotModule` hängt sich an das Screenshot-Event und
 registriert eigene Commands.
@@ -302,11 +302,24 @@ registriert eigene Commands.
   also die englische Vanilla-Lokalisierung mit deutschem Text; auf `en_us` steht das Spiel
   trotzdem auf Deutsch. Ob gewollt oder ein Build-Fehler, lässt sich von außen nicht sagen —
   es ist aber der wahrscheinlichste Kandidat, falls jemand "englisch geht nicht" meldet.
-* **Zwei Asset-Namespaces mit gleichem Logo.** `assets/nrc-client/textures/noriskclient-logo-text.png`
-  und `assets/noriskclient/textures/noriskclient-logo-text.png` sind Dubletten unter
-  verschiedenen Namespaces — Altlast aus dem Namespace-Wechsel.
-* **Branding nur halb durchgezogen.** Nach außen "Voidrix" (Logger `Voidrix-*`, Verzeichnis
-  `VoidrixClient/`, `pack.mcmeta`-Beschreibung), intern weiterhin `gg.norisk`, Mod-ID `nrcclient`,
-  Asset-Namespace `noriskclient`, Backend `*.norisk.gg`. Ein Rebrand der Oberfläche, nicht des Codes.
+* **Drei Asset-Namespaces mit gleichem Logo — inzwischen bereinigt.** Im Original lagen
+  `assets/noriskclient/`, `assets/nrc-client/` und `assets/nrcclient/` nebeneinander, die beiden
+  Logo-Texturen waren byte-identisch (gleiche MD5). Beim Rebrand wurden sie zu `assets/voidrix/`
+  zusammengeführt und die Dublette entfernt.
+* **Das Branding war im Original nur halb durchgezogen.** Nach außen "Voidrix" (Logger, Verzeichnis
+  `VoidrixClient/`, `pack.mcmeta`), intern weiterhin `gg.norisk`, Mod-ID `nrcclient`,
+  Asset-Namespace `noriskclient`. Der Rebrand in diesem Repo hat das nachgezogen; die
+  Backend-Hosts (`*.norisk.gg`, `advert.norisk.space`) sind bewusst geblieben, weil sie echte
+  Adressen sind — Details in der [README](../README.md#rebrand).
 * **Kein Server-Anteil.** `"environment": "client"` — alles läuft lokal; der einzige
   „Server"-Einfluss ist `ServerLockedModuleManager`, der Module auf Wunsch des Servers sperrt.
+
+---
+
+## 7. Verhältnis zu `src/`
+
+Dieser Baum ist **Referenz, nicht Bauziel** — siehe [README](../README.md#warum-reference-nicht-baubar-ist).
+Er hat aber die 26.2-API-Signaturen geliefert, auf denen der lauffähige Mod unter `src/` aufsetzt,
+insbesondere `Hud.extractRenderState`, `Camera.calculateFov`, `LightmapRenderStateExtractor.extract`
+und `GameRenderer.bobHurt`. Alle dort verwendeten Injection Points wurden zusätzlich gegen das
+echte Bytecode von Minecraft 26.2 gegengeprüft.

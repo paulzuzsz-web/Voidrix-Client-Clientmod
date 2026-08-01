@@ -1,0 +1,20 @@
+package gg.voidrix.client.v2.mixin.zoom;
+
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import gg.voidrix.client.v2.modules.impl.ZoomModule;
+import net.minecraft.client.Camera;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+
+@Mixin(Camera.class)
+public abstract class ZoomFovMixin {
+   @ModifyReturnValue(method = "calculateFov", at = @At("RETURN"))
+   private float voidrix$zoomFov(float original) {
+      return (float)ZoomModule.modifyFov(original);
+   }
+
+   @ModifyReturnValue(method = "calculateHudFov", at = @At("RETURN"))
+   private float voidrix$zoomHudFov(float original) {
+      return (float)ZoomModule.modifyFov(original);
+   }
+}

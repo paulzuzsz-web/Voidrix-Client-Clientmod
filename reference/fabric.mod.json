@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "voidrix",
+  "version": "26.3.1663417-working+fabric.26.2",
+  "name": "Voidrix Client",
+  "description": "Client module implementations for Voidrix Client",
+  "authors": [],
+  "license": "ARR",
+  "icon": "assets/voidrix/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "mixinsquared": [
+      "gg.voidrix.client.v2.plugin.VoidrixMixinCanceller"
+    ]
+  },
+  "mixins": [
+    "voidrix.mixins.json"
+  ],
+  "accessWidener": "voidrix.accesswidener",
+  "depends": {
+    "minecraft": "26.2",
+    "fabricloader": "\u003e\u003d0.15.0"
+  },
+  "jars": [
+    {
+      "file": "META-INF/jars/KDiscordIPC-0.2.2.jar"
+    },
+    {
+      "file": "META-INF/jars/core-26.2.15-dev-java-8.jar"
+    },
+    {
+      "file": "META-INF/jars/dbus-java-core-4.3.1.jar"
+    },
+    {
+      "file": "META-INF/jars/dbus-java-transport-native-unixsocket-4.3.1.jar"
+    },
+    {
+      "file": "META-INF/jars/linux-26.2.15-dev-java-8.jar"
+    },
+    {
+      "file": "META-INF/jars/macos-26.2.15-dev-java-8.jar"
+    },
+    {
+      "file": "META-INF/jars/mixinsquared-fabric-0.3.3.jar"
+    },
+    {
+      "file": "META-INF/jars/nrc-analytics-client-26.2.13-master.jar"
+    },
+    {
+      "file": "META-INF/jars/windows-26.2.15-dev-java-8.jar"
+    }
+  ]
+}
