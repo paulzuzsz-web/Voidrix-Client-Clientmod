@@ -1,0 +1,1143 @@
+<title>Voidrix — Client UI</title>
+
+<style>
+  /* ───────────────────────────────────────────────────────────────
+     Tokens. The neutral carries a violet bias so it reads as chosen
+     rather than inherited, and every surface is derived from it.
+     ─────────────────────────────────────────────────────────────── */
+  :root {
+    --void-deep:   #0A0810;
+    --void:        #12101A;
+    --surface:     #1A1726;
+    --surface-hi:  #221E30;
+    --surface-sunk:#0F0D16;
+
+    --accent:      #7C3AED;
+    --accent-soft: #9B6BF5;
+    --cyan:        #22D3EE;
+
+    --text:        #EDEAF6;
+    --text-dim:    #9A93B5;
+    --text-faint:  #635C7D;
+
+    --ok:          #34D399;
+    --warn:        #FBBF24;
+    --bad:         #FB7185;
+
+    --hairline:    color-mix(in srgb, var(--accent) 26%, transparent);
+    --hairline-hi: color-mix(in srgb, var(--accent) 62%, transparent);
+    --glow:        color-mix(in srgb, var(--accent) 38%, transparent);
+
+    --panel-bg:    color-mix(in srgb, var(--void) 88%, transparent);
+    --scrim:       color-mix(in srgb, var(--void-deep) 72%, transparent);
+
+    /* The signature: a cut corner, top right. Used on the panel and every card. */
+    --cut:   polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+    --cut-s: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%);
+
+    --font-display: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono",
+                    "Roboto Mono", Menlo, Consolas, monospace;
+    --font-body:    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    --step-0: 13px;
+    --step-1: 15px;
+    --step-2: 19px;
+    --step-3: 26px;
+  }
+
+  /* Light theme keeps the same accent but drops the glow to a whisper —
+     an energy field reads as grime on a pale ground. */
+  :root[data-theme="light"] {
+    --void-deep:   #E7E4F0;
+    --void:        #F4F2F9;
+    --surface:     #FFFFFF;
+    --surface-hi:  #F0EDF8;
+    --surface-sunk:#EAE7F3;
+
+    --text:        #17131F;
+    --text-dim:    #5B5473;
+    --text-faint:  #8E87A6;
+
+    --hairline:    color-mix(in srgb, var(--accent) 22%, transparent);
+    --hairline-hi: color-mix(in srgb, var(--accent) 55%, transparent);
+    --glow:        color-mix(in srgb, var(--accent) 16%, transparent);
+
+    --panel-bg:    color-mix(in srgb, var(--void) 92%, transparent);
+    --scrim:       color-mix(in srgb, #6E6890 42%, transparent);
+  }
+
+  * { box-sizing: border-box; }
+
+  .stage {
+    min-height: 100vh;
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--step-1);
+    color: var(--text);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    background: var(--void-deep);
+  }
+
+  /* ── Backdrop: an abstract, heavily blurred scene so the overlay has
+     something to sit on. Deliberately not a fake screenshot. ────────── */
+  .scene {
+    position: fixed;
+    inset: -10%;
+    z-index: 0;
+    filter: blur(46px) saturate(0.85);
+    background:
+      radial-gradient(60% 45% at 22% 26%, #2B4A6E 0%, transparent 62%),
+      radial-gradient(48% 40% at 78% 18%, #3A2E5C 0%, transparent 60%),
+      radial-gradient(70% 50% at 50% 92%, #1B3A2A 0%, transparent 64%),
+      linear-gradient(180deg, #16233A 0%, #101528 46%, #0B0A14 100%);
+  }
+  :root[data-theme="light"] .scene { filter: blur(46px) saturate(0.5) brightness(1.7); }
+
+  .scrim { position: fixed; inset: 0; z-index: 1; background: var(--scrim); }
+
+  #dust { position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: .55; }
+  :root[data-theme="light"] #dust { opacity: .3; }
+
+  /* ── Faceted surface primitive ──────────────────────────────────────
+     clip-path removes borders, so the hairline is a gradient layer with
+     the content clipped 1px inside it. That way the contour follows the
+     cut corner instead of squaring it off. */
+  .facet { position: relative; clip-path: var(--cut); padding: 1px;
+           background: linear-gradient(150deg, var(--hairline-hi), var(--hairline) 38%, transparent 78%); }
+  .facet > .in { clip-path: var(--cut); background: var(--surface); height: 100%; }
+  .facet-s { clip-path: var(--cut-s); }
+  .facet-s > .in { clip-path: var(--cut-s); }
+
+  /* ── Panel ──────────────────────────────────────────────────────── */
+  .client {
+    position: relative; z-index: 3;
+    width: min(1120px, 100%);
+    height: min(720px, calc(100vh - 48px));
+    clip-path: var(--cut);
+    padding: 1px;
+    background: linear-gradient(150deg, var(--hairline-hi), var(--hairline) 40%, transparent 80%);
+    filter: drop-shadow(0 0 26px color-mix(in srgb, var(--accent) 20%, transparent));
+  }
+  .client-in {
+    clip-path: var(--cut);
+    height: 100%;
+    background: var(--panel-bg);
+    backdrop-filter: blur(22px) saturate(1.1);
+    display: grid;
+    grid-template-columns: 76px 1fr;
+    overflow: hidden;
+  }
+
+  /* ── Rail ───────────────────────────────────────────────────────── */
+  .rail {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; padding: 14px 0 12px;
+    border-right: 1px solid var(--hairline);
+    background: color-mix(in srgb, var(--surface-sunk) 55%, transparent);
+  }
+  .brand { display: grid; place-items: center; gap: 5px; margin-bottom: 12px; }
+  .brand svg { width: 34px; height: 34px; filter: drop-shadow(0 0 7px var(--glow)); }
+  .brand span {
+    font: 600 8px/1 var(--font-display); letter-spacing: .22em;
+    color: var(--text-faint); text-transform: uppercase;
+  }
+
+  .rail-btn {
+    width: 56px; padding: 9px 2px 7px;
+    display: grid; place-items: center; gap: 4px;
+    background: none; border: 0; cursor: pointer;
+    color: var(--text-faint);
+    clip-path: var(--cut-s);
+    transition: color .16s ease, background .16s ease;
+  }
+  .rail-btn svg { width: 19px; height: 19px; }
+  .rail-btn b {
+    font: 500 8px/1 var(--font-display); letter-spacing: .1em; text-transform: uppercase;
+  }
+  .rail-btn:hover { color: var(--text-dim); background: color-mix(in srgb, var(--surface-hi) 70%, transparent); }
+  .rail-btn[aria-current="true"] { color: var(--accent-soft); background: color-mix(in srgb, var(--accent) 13%, transparent); }
+  .rail-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+
+  .rail-plus[data-unlocked="true"] { color: var(--cyan); }
+
+  /* ── Main column ────────────────────────────────────────────────── */
+  .main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+
+  .topbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 18px; border-bottom: 1px solid var(--hairline);
+  }
+  .tabs { display: flex; gap: 2px; }
+  .tab {
+    background: none; border: 0; cursor: pointer;
+    padding: 7px 13px;
+    font: 600 11px/1 var(--font-display); letter-spacing: .14em; text-transform: uppercase;
+    color: var(--text-faint); position: relative;
+    transition: color .16s ease;
+  }
+  .tab:hover { color: var(--text-dim); }
+  .tab[aria-current="true"] { color: var(--text); }
+  .tab[aria-current="true"]::after {
+    content: ""; position: absolute; left: 11px; right: 11px; bottom: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--cyan));
+    box-shadow: 0 0 8px var(--glow);
+  }
+  .tab:focus-visible { outline: 2px solid var(--cyan); outline-offset: -3px; }
+
+  .spacer { flex: 1; }
+
+  .search { position: relative; width: 208px; }
+  .search svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; color: var(--text-faint); }
+  .search input {
+    width: 100%; padding: 7px 10px 7px 27px;
+    background: var(--surface-sunk); color: var(--text);
+    border: 1px solid var(--hairline); border-radius: 0;
+    clip-path: var(--cut-s);
+    font: 400 var(--step-0)/1.2 var(--font-body);
+  }
+  .search input::placeholder { color: var(--text-faint); }
+  .search input:focus { outline: none; border-color: var(--hairline-hi); box-shadow: 0 0 0 1px var(--hairline-hi), 0 0 12px var(--glow); }
+
+  .icon-btn {
+    width: 32px; height: 30px; display: grid; place-items: center;
+    background: var(--surface-sunk); border: 1px solid var(--hairline);
+    color: var(--text-dim); cursor: pointer; clip-path: var(--cut-s);
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--hairline-hi); }
+  .icon-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+  .icon-btn svg { width: 15px; height: 15px; }
+
+  .body { overflow-y: auto; padding: 16px 18px 20px; scrollbar-width: thin; }
+  .body::-webkit-scrollbar { width: 8px; }
+  .body::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--accent) 34%, transparent); }
+
+  .statusbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-top: 1px solid var(--hairline);
+    font: 400 11px/1 var(--font-display); letter-spacing: .07em; color: var(--text-faint);
+  }
+  .statusbar .dot { width: 6px; height: 6px; background: var(--ok); box-shadow: 0 0 7px var(--ok); }
+
+  /* ── Section heading ────────────────────────────────────────────── */
+  .sec { display: flex; align-items: center; gap: 10px; margin: 20px 0 11px; }
+  .sec:first-child { margin-top: 2px; }
+  .sec h2 {
+    margin: 0; font: 600 10px/1 var(--font-display);
+    letter-spacing: .2em; text-transform: uppercase; color: var(--text-dim);
+  }
+  .sec .rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--hairline), transparent); }
+  .sec .count { font: 400 10px/1 var(--font-display); color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+  /* ── Cards ──────────────────────────────────────────────────────── */
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } }
+
+  .card { display: block; width: 100%; text-align: left; border: 0; cursor: pointer;
+          background: linear-gradient(150deg, var(--hairline-hi), var(--hairline) 38%, transparent 78%);
+          padding: 1px; clip-path: var(--cut); font: inherit; color: inherit;
+          transition: filter .18s ease, transform .18s ease; }
+  .card:hover { filter: drop-shadow(0 0 10px var(--glow)); transform: translateY(-1px); }
+  .card:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .card .in {
+    clip-path: var(--cut); background: var(--surface);
+    padding: 12px 13px; display: grid; grid-template-columns: 34px 1fr auto; gap: 11px;
+    align-items: start; min-height: 74px;
+  }
+  .card:hover .in { background: var(--surface-hi); }
+
+  .card-icon {
+    width: 34px; height: 34px; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    clip-path: var(--cut-s); color: var(--accent-soft);
+  }
+  .card-icon svg { width: 18px; height: 18px; }
+  .card[data-on="true"] .card-icon { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--cyan); }
+
+  .card-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .card-title {
+    font: 600 12px/1.1 var(--font-display); letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .card[data-on="true"] .card-title { color: var(--text); }
+  .card-desc { margin: 5px 0 0; font-size: 12px; line-height: 1.42; color: var(--text-faint);
+               display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .badge {
+    font: 700 8px/1 var(--font-display); letter-spacing: .12em;
+    padding: 3px 5px; clip-path: var(--cut-s);
+  }
+  .badge-new { background: linear-gradient(120deg, var(--accent), var(--cyan)); color: #0A0810; }
+  .badge-lock { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn);
+                display: inline-flex; align-items: center; gap: 3px; }
+  .badge-lock svg { width: 9px; height: 9px; }
+
+  .card-right { display: grid; gap: 8px; justify-items: end; }
+
+  /* Toggle */
+  .sw { width: 34px; height: 17px; padding: 0; border: 1px solid var(--hairline);
+        background: var(--surface-sunk); cursor: pointer; position: relative;
+        clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 0 100%);
+        transition: background .18s ease, border-color .18s ease; }
+  .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px;
+               background: var(--text-faint); transition: transform .18s cubic-bezier(.3,.8,.4,1), background .18s ease; }
+  .sw[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 40%, transparent); border-color: var(--hairline-hi); box-shadow: 0 0 9px var(--glow); }
+  .sw[aria-pressed="true"]::after { transform: translateX(17px); background: #fff; }
+  .sw:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .sw:disabled { opacity: .4; cursor: not-allowed; }
+
+  .dots { background: none; border: 0; color: var(--text-faint); cursor: pointer; padding: 2px 4px;
+          font: 600 13px/1 var(--font-display); letter-spacing: .1em; }
+  .dots:hover { color: var(--text); }
+  .dots:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+
+  .card[data-locked="true"] .card-icon { color: var(--text-faint); background: color-mix(in srgb, var(--text-faint) 12%, transparent); }
+  .card[data-locked="true"] .in { opacity: .72; }
+
+  /* ── Detail view ────────────────────────────────────────────────── */
+  .detail-head { display: flex; align-items: center; gap: 11px; margin-bottom: 4px; }
+  .back {
+    width: 30px; height: 30px; display: grid; place-items: center;
+    background: var(--surface); border: 1px solid var(--hairline); color: var(--text-dim);
+    cursor: pointer; clip-path: var(--cut-s);
+  }
+  .back:hover { color: var(--text); border-color: var(--hairline-hi); }
+  .back:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .back svg { width: 14px; height: 14px; }
+  .detail-title { margin: 0; font: 600 var(--step-2)/1.15 var(--font-display);
+                  letter-spacing: .07em; text-transform: uppercase; }
+  .detail-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .link-btn { background: none; border: 0; cursor: pointer; color: var(--text-faint);
+              font: 500 10px/1 var(--font-display); letter-spacing: .12em; text-transform: uppercase; }
+  .link-btn:hover { color: var(--cyan); }
+  .link-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .detail-desc { margin: 0 0 16px 41px; color: var(--text-dim); font-size: 13px; max-width: 62ch; }
+
+  .rows { display: grid; gap: 1px; background: var(--hairline); }
+  .row { background: var(--surface); padding: 12px 14px; display: grid;
+         grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+  .row-label { display: grid; gap: 3px; min-width: 0; }
+  .row-label b { font: 500 12px/1.2 var(--font-body); color: var(--text); font-weight: 600; }
+  .row-label span { font-size: 11px; color: var(--text-faint); }
+  .row-control { display: flex; align-items: center; gap: 9px; }
+
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 132px; height: 3px;
+                        background: var(--surface-sunk); outline: none; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px;
+    background: var(--accent-soft); cursor: pointer; box-shadow: 0 0 8px var(--glow);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+  input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 0;
+    background: var(--accent-soft); cursor: pointer; box-shadow: 0 0 8px var(--glow);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+  input[type="range"]:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+
+  .num, .text-in, select {
+    background: var(--surface-sunk); color: var(--text);
+    border: 1px solid var(--hairline); padding: 5px 8px;
+    font: 400 12px/1.2 var(--font-body); clip-path: var(--cut-s);
+  }
+  .num { width: 58px; text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-display); }
+  .text-in { width: 190px; font-family: var(--font-display); font-size: 11px; }
+  select { min-width: 108px; cursor: pointer; }
+  .num:focus, .text-in:focus, select:focus { outline: none; border-color: var(--hairline-hi); box-shadow: 0 0 10px var(--glow); }
+
+  .swatch { width: 30px; height: 22px; padding: 0; border: 1px solid var(--hairline);
+            background: none; cursor: pointer; clip-path: var(--cut-s); }
+  .swatch::-webkit-color-swatch-wrapper { padding: 2px; }
+  .swatch::-webkit-color-swatch { border: 0; }
+  .hex { font: 400 11px/1 var(--font-display); color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+  /* ── Voidrix+ panel ─────────────────────────────────────────────── */
+  .plus-hero { padding: 20px; display: grid; gap: 6px; }
+  .plus-hero .eyebrow { font: 600 9px/1 var(--font-display); letter-spacing: .26em;
+                        text-transform: uppercase; color: var(--cyan); }
+  .plus-hero h2 { margin: 0; font: 700 var(--step-3)/1.05 var(--font-display);
+                  letter-spacing: .04em; text-transform: uppercase; text-wrap: balance; }
+  .plus-hero p { margin: 2px 0 0; color: var(--text-dim); font-size: 13px; max-width: 54ch; }
+
+  .state-pill { justify-self: start; margin-top: 8px; display: inline-flex; align-items: center; gap: 6px;
+                padding: 5px 9px; clip-path: var(--cut-s);
+                font: 600 10px/1 var(--font-display); letter-spacing: .12em; text-transform: uppercase; }
+  .state-off { background: color-mix(in srgb, var(--text-faint) 16%, transparent); color: var(--text-dim); }
+  .state-on  { background: linear-gradient(120deg, var(--accent), var(--cyan)); color: #0A0810; }
+
+  .redeem { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .redeem input {
+    flex: 1 1 220px; min-width: 0; padding: 9px 11px;
+    background: var(--surface-sunk); color: var(--text);
+    border: 1px solid var(--hairline); clip-path: var(--cut-s);
+    font: 400 13px/1.2 var(--font-display); letter-spacing: .05em;
+  }
+  .redeem input::placeholder { color: var(--text-faint); letter-spacing: 0; font-family: var(--font-body); }
+  .redeem input:focus { outline: none; border-color: var(--hairline-hi); box-shadow: 0 0 12px var(--glow); }
+  .btn {
+    padding: 9px 17px; cursor: pointer; border: 0;
+    background: linear-gradient(120deg, var(--accent), var(--accent-soft));
+    color: #fff; clip-path: var(--cut-s);
+    font: 600 11px/1 var(--font-display); letter-spacing: .14em; text-transform: uppercase;
+  }
+  .btn:hover { filter: brightness(1.12); box-shadow: 0 0 14px var(--glow); }
+  .btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .btn-ghost { background: none; border: 1px solid var(--hairline); color: var(--text-dim); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--hairline-hi); box-shadow: none; }
+
+  .msg { margin-top: 10px; font-size: 12px; display: none; align-items: center; gap: 7px; }
+  .msg[data-show="true"] { display: flex; }
+  .msg-ok { color: var(--ok); }
+  .msg-bad { color: var(--bad); }
+  .msg svg { width: 13px; height: 13px; flex: none; }
+
+  /* ── Nametag preview ────────────────────────────────────────────── */
+  .preview { display: grid; gap: 12px; padding: 16px; }
+  .preview h3 { margin: 0; font: 600 10px/1 var(--font-display); letter-spacing: .2em;
+                text-transform: uppercase; color: var(--text-dim); }
+  .pv-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .pv {
+    background: var(--surface-sunk); border: 1px solid var(--hairline);
+    clip-path: var(--cut-s); padding: 11px 12px; display: grid; gap: 8px;
+  }
+  .pv .cap { font: 500 9px/1 var(--font-display); letter-spacing: .16em;
+             text-transform: uppercase; color: var(--text-faint); }
+
+  /* The prefix mark itself. Grey for everyone, gradient + glow for Voidrix+. */
+  .vmark {
+    font: 700 12px/1 var(--font-display); letter-spacing: .02em;
+    color: var(--text-dim);
+  }
+  .vmark.is-plus {
+    background: linear-gradient(120deg, var(--accent-soft), var(--cyan));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--cyan) 55%, transparent));
+  }
+
+  .tagline { display: inline-flex; align-items: center; gap: 6px;
+             background: rgba(8,6,14,.62); padding: 4px 9px; align-self: center; justify-self: center;
+             font: 400 12px/1 var(--font-body); color: #fff; }
+  :root[data-theme="light"] .tagline { background: rgba(20,16,30,.78); }
+  .tab-row { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+  .tab-row .head { width: 13px; height: 13px; background: linear-gradient(135deg,#B07B4F,#8A5C36); flex: none; }
+  .tab-row .ping { margin-left: auto; font: 400 10px/1 var(--font-display); color: var(--ok); font-variant-numeric: tabular-nums; }
+  .chat-row { font-size: 12px; color: var(--text); }
+  .chat-row .who { color: var(--text-dim); }
+
+  /* ── Friends / cosmetics / emotes ───────────────────────────────── */
+  .list { display: grid; gap: 1px; background: var(--hairline); }
+  .list-row { background: var(--surface); padding: 10px 13px; display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 26px; height: 26px; flex: none; clip-path: var(--cut-s);
+            background: linear-gradient(135deg, var(--accent), var(--cyan)); }
+  .who-name { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .who-sub { font-size: 11px; color: var(--text-faint); }
+  .presence { margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+              font: 500 10px/1 var(--font-display); letter-spacing: .1em; text-transform: uppercase; }
+  .presence i { width: 6px; height: 6px; display: block; }
+  .on  { color: var(--ok); }      .on i  { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .idle{ color: var(--warn); }    .idle i{ background: var(--warn); }
+  .off { color: var(--text-faint); } .off i { background: var(--text-faint); }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 10px; }
+  .tile { background: var(--surface); border: 1px solid var(--hairline); clip-path: var(--cut-s);
+          padding: 12px; display: grid; gap: 7px; justify-items: center; text-align: center; }
+  .tile .art { width: 46px; height: 46px; clip-path: var(--cut-s);
+               background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, var(--cyan) 35%, transparent)); }
+  .tile b { font: 600 11px/1.2 var(--font-display); letter-spacing: .06em; text-transform: uppercase; }
+  .tile span { font-size: 10px; color: var(--text-faint); }
+
+  .empty { padding: 46px 20px; text-align: center; color: var(--text-faint); font-size: 13px; }
+
+  .hidden { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+
+<div class="stage">
+  <div class="scene" aria-hidden="true"></div>
+  <div class="scrim" aria-hidden="true"></div>
+  <canvas id="dust" aria-hidden="true"></canvas>
+
+  <div class="client" id="client" data-plus="false">
+    <div class="client-in">
+
+      <!-- ── Rail ─────────────────────────────────────────────── -->
+      <nav class="rail" aria-label="Bereiche">
+        <div class="brand">
+          <svg viewBox="0 0 64 64" role="img" aria-label="Voidrix">
+            <defs>
+              <linearGradient id="vgrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#9B6BF5"/>
+                <stop offset="1" stop-color="#22D3EE"/>
+              </linearGradient>
+            </defs>
+            <polygon points="7,7 21,7 37,49 32,60 25,47" fill="url(#vgrad)"/>
+            <polygon points="57,7 43,7 27,49 32,60 39,47" fill="url(#vgrad)" opacity=".62"/>
+            <polygon points="21,7 25,7 27,15 22,13" fill="#fff" opacity=".5"/>
+          </svg>
+          <span>Voidrix</span>
+        </div>
+
+        <button class="rail-btn rail-plus" data-panel="plus" aria-current="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8L12 3z"/>
+          </svg>
+          <b>Plus</b>
+        </button>
+
+        <button class="rail-btn" data-panel="cosmetics" aria-current="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M5 8l7-4 7 4v8l-7 4-7-4z"/><path d="M12 4v16"/>
+          </svg>
+          <b>Optik</b>
+        </button>
+
+        <button class="rail-btn" data-panel="friends" aria-current="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/>
+            <path d="M16 6.2a3 3 0 010 5.6M17.5 19c0-2.2-.9-3.9-2.3-5"/>
+          </svg>
+          <b>Freunde</b>
+        </button>
+
+        <button class="rail-btn" data-panel="emotes" aria-current="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 3v11.5"/><circle cx="8.5" cy="17" r="3.2"/><path d="M12 6l6-2v9"/>
+          </svg>
+          <b>Emotes</b>
+        </button>
+      </nav>
+
+      <!-- ── Main ─────────────────────────────────────────────── -->
+      <div class="main">
+        <header class="topbar">
+          <div class="tabs" role="tablist" aria-label="Ansicht">
+            <button class="tab" role="tab" data-tab="mods" aria-current="true">Mods</button>
+            <button class="tab" role="tab" data-tab="profiles" aria-current="false">Profiles</button>
+            <button class="tab" role="tab" data-tab="waypoints" aria-current="false">Waypoints</button>
+          </div>
+          <div class="spacer"></div>
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>
+            </svg>
+            <input id="q" type="search" placeholder="Suchen…" aria-label="Mods durchsuchen" autocomplete="off">
+          </div>
+          <button class="icon-btn" id="themeBtn" title="Hell / Dunkel umschalten" aria-label="Hell / Dunkel umschalten">
+            <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+              <path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/>
+            </svg>
+          </button>
+        </header>
+
+        <div class="body" id="body"></div>
+
+        <footer class="statusbar">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="status">—</span>
+        </footer>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const PLUS_CODE = "kwhfiejyguso+";
+
+  /* ── Icons, keyed by what the module actually does ─────────────── */
+  const I = {
+    counter:'<path d="M4 5h16v14H4z"/><path d="M8 9v6M12 9v6M16 9v6"/>',
+    gauge:  '<path d="M4 17a8 8 0 1116 0"/><path d="M12 17l4-5"/>',
+    signal: '<path d="M5 19v-4M10 19v-8M15 19v-11M20 19V6"/>',
+    axis:   '<path d="M5 19V5M5 19h14"/><path d="M9 15l3-4 3 2 3-5"/>',
+    heart:  '<path d="M12 20s-7-4.4-7-9a4 4 0 017-2.6A4 4 0 0119 11c0 4.6-7 9-7 9z"/>',
+    head:   '<rect x="5" y="5" width="14" height="14"/><path d="M9 10h.01M15 10h.01M9 15h6"/>',
+    pulse:  '<path d="M3 12h4l2-6 4 12 2-6h6"/>',
+    spark:  '<path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6z"/>',
+    cross:  '<path d="M12 4v5M12 15v5M4 12h5M15 12h5"/><circle cx="12" cy="12" r="1.4"/>',
+    cube:   '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>',
+    layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+    shield: '<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/>',
+    drop:   '<path d="M12 4l5 8a5 5 0 11-10 0z"/>',
+    boot:   '<path d="M6 5h5v7l6 3v4H6z"/><path d="M11 12h4"/>',
+    person: '<circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/>',
+    box:    '<path d="M4 7l8-3 8 3v10l-8 3-8-3z"/><path d="M4 7l8 3 8-3M12 10v10"/>',
+    flask:  '<path d="M10 3v6L5 19h14l-5-10V3"/><path d="M9 3h6"/>',
+    wave:   '<path d="M3 9c3-3 6 3 9 0s6-3 9 0"/><path d="M3 15c3-3 6 3 9 0s6-3 9 0"/>',
+    frame:  '<rect x="4" y="4" width="16" height="16"/><path d="M8 20l8-16"/>',
+    filter: '<path d="M4 5h16l-6 7v6l-4 2v-8z"/>',
+    zoom:   '<circle cx="11" cy="11" r="6"/><path d="M15.5 15.5L21 21M9 11h4"/>',
+    screen: '<rect x="3" y="5" width="18" height="12"/><path d="M8 21h8"/>',
+    trophy: '<path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M7 6H4v2a3 3 0 003 3M17 6h3v2a3 3 0 01-3 3M9 20h6M12 14v6"/>',
+    chat:   '<path d="M4 5h16v10H9l-5 4z"/>',
+    pin:    '<path d="M12 21s6-6.2 6-10a6 6 0 10-12 0c0 3.8 6 10 6 10z"/><circle cx="12" cy="11" r="2.2"/>',
+    star:   '<path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8L12 3z"/>'
+  };
+  const svg = k => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[k] + '</svg>';
+
+  /* ── Data ──────────────────────────────────────────────────────── */
+  const CATS = [
+    { id: "hud",  name: "HUD" },
+    { id: "pvp",  name: "PvP & Gameplay" },
+    { id: "look", name: "Kosmetik & Optik" },
+    { id: "misc", name: "Sonstiges" }
+  ];
+
+  const MODS = [
+    { id:"cps",       cat:"hud",  icon:"counter", name:"CPS-Zähler",        desc:"Klicks pro Sekunde für beide Maustasten, im Sekundenfenster gezählt.", on:true },
+    { id:"fps",       cat:"hud",  icon:"gauge",   name:"FPS-Anzeige",       desc:"Bildrate, wahlweise nach Höhe eingefärbt.", on:true },
+    { id:"ping",      cat:"hud",  icon:"signal",  name:"Ping-Anzeige",      desc:"Latenz zum Server, mit farbiger Abstufung.", on:true },
+    { id:"coords",    cat:"hud",  icon:"axis",    name:"Koordinaten",       desc:"X, Y und Z – ganze Blöcke oder mit Nachkommastelle.", on:true },
+    { id:"health",    cat:"hud",  icon:"heart",   name:"Health Indicator",  desc:"Leben als Zahl statt Herzen zählen.", on:false },
+    { id:"chatheads", cat:"hud",  icon:"head",    name:"Chat Heads",        desc:"Kopf des Absenders vor jeder Chatzeile.", on:false, plus:true },
+    { id:"tps",       cat:"hud",  icon:"pulse",   name:"TPS-Anzeige",       desc:"Server-Ticks pro Sekunde, aus dem Zeitversatz geschätzt.", on:false },
+
+    { id:"highlight", cat:"pvp",  icon:"spark",   name:"Item Highlighter",  desc:"Hebt gedroppte Items mit einer Kontur hervor.", on:false },
+    { id:"crosshair", cat:"pvp",  icon:"cross",   name:"Custom Crosshair",  desc:"Kreuz, T, Kreis oder Punkt – Größe, Lücke und Farbe frei.", on:true },
+    { id:"outlines",  cat:"pvp",  icon:"cube",    name:"Block Outlines",    desc:"Farbe und Stärke der Blockkontur selbst bestimmen.", on:false },
+    { id:"tiers",     cat:"pvp",  icon:"layers",  name:"Tiers",             desc:"Zeigt das Ranglisten-Tier deines Gegners neben dem Namen.", on:false, plus:true, isNew:true },
+    { id:"nohurt",    cat:"pvp",  icon:"shield",  name:"NoHurtCam",         desc:"Kein Kameraruckeln mehr, wenn du getroffen wirst.", on:true },
+    { id:"dropstack", cat:"pvp",  icon:"drop",    name:"Drop Stack",        desc:"Die Ablegetaste wirft den ganzen Stapel; Strg wirft einzeln.", on:true, isNew:true },
+    { id:"sprint",    cat:"pvp",  icon:"boot",    name:"Toggle Sprint",     desc:"Sprint einrasten lassen, statt die Taste zu halten.", on:false },
+
+    { id:"skin3d",    cat:"look", icon:"person",  name:"3D Skin Vorschau",  desc:"Dreh deinen Skin im Menü und sieh ihn von allen Seiten.", on:false, plus:true },
+    { id:"shulker",   cat:"look", icon:"box",     name:"Shulker Preview",   desc:"Inhalt einer Shulkerbox beim Darüberfahren.", on:false, plus:true },
+    { id:"shinypots", cat:"look", icon:"flask",   name:"Shiny Pots",        desc:"Tränke glänzen nach Wirkung eingefärbt.", on:false, plus:true },
+    { id:"capes",     cat:"look", icon:"wave",    name:"Wavey Capes",       desc:"Umhänge wehen physikalisch statt starr zu hängen.", on:false, plus:true },
+    { id:"itemmodel", cat:"look", icon:"frame",   name:"Item Model",        desc:"Haltung und Größe des Items in der Hand anpassen.", on:false },
+    { id:"particles", cat:"look", icon:"filter",  name:"Particles-Filter",  desc:"Einzelne Partikelarten ausblenden, ohne alle abzuschalten.", on:false },
+    { id:"zoom",      cat:"look", icon:"zoom",    name:"Zoom",              desc:"Taste halten und heranzoomen, Faktor einstellbar.", on:true },
+    { id:"borderless", cat:"look", icon:"screen", name:"Borderless Fullscreen", desc:"Vollbild ohne Moduswechsel – Alt-Tab ohne Verzögerung.", on:false },
+
+    { id:"worldcup",  cat:"misc", icon:"trophy",  name:"Worldcup-Overlay",  desc:"Turnierstand und nächstes Match über dem Spiel.", on:false, plus:true, isNew:true },
+    { id:"discord",   cat:"misc", icon:"chat",    name:"Discord Integration", desc:"Zeigt im Profil, was du gerade spielst.", on:false },
+    { id:"waypoints", cat:"misc", icon:"pin",     name:"Waypoints",         desc:"Orte markieren und mit Entfernung durch die Welt sehen.", on:true },
+    { id:"plusbadge", cat:"misc", icon:"star",    name:"Voidrix+ Premium-Badge", desc:"Das leuchtende V vor deinem Namen, überall sichtbar.", on:false, plus:true }
+  ];
+
+  const FRIENDS = [
+    { name:"Nyxor",     sub:"Bedwars · Practice",  state:"on",   plus:true },
+    { name:"Kaelith",   sub:"Sumo 1v1",            state:"on",   plus:true },
+    { name:"Vex_",      sub:"Im Menü",             state:"on",   plus:false },
+    { name:"Ardent",    sub:"Crystal PvP",         state:"on",   plus:false },
+    { name:"Solenne",   sub:"Abwesend seit 12 min",state:"idle", plus:true },
+    { name:"Orbit",     sub:"Abwesend seit 4 min", state:"idle", plus:false },
+    { name:"Halcyon",   sub:"Zuletzt vor 2 Std.",  state:"off",  plus:false },
+    { name:"Riven",     sub:"Zuletzt gestern",     state:"off",  plus:true }
+  ];
+
+  const COSMETICS = [
+    { name:"Void Cape",      sub:"Umhang",  plus:true },
+    { name:"Prism Wings",    sub:"Rücken",  plus:true },
+    { name:"Cyan Halo",      sub:"Kopf",    plus:true },
+    { name:"Standard Cape",  sub:"Umhang",  plus:false },
+    { name:"Dust Trail",     sub:"Spur",    plus:false },
+    { name:"Facet Crown",    sub:"Kopf",    plus:true }
+  ];
+
+  const EMOTES = [
+    { name:"Salute",   sub:"Frei",    plus:false },
+    { name:"Facepalm", sub:"Frei",    plus:false },
+    { name:"Backflip", sub:"Voidrix+",plus:true  },
+    { name:"Void Step",sub:"Voidrix+",plus:true  },
+    { name:"Applaus",  sub:"Frei",    plus:false },
+    { name:"Sitzen",   sub:"Voidrix+",plus:true  }
+  ];
+
+  const PROFILES = [
+    { name:"Practice",  sub:"18 Module aktiv", active:true },
+    { name:"Bedwars",   sub:"24 Module aktiv", active:false },
+    { name:"Vanilla",   sub:"3 Module aktiv",  active:false }
+  ];
+
+  const WAYPOINTS = [
+    { name:"Base",     pos:"78, 71, 302",   dist:"62 m",   color:"#7C3AED" },
+    { name:"Nether-Tor", pos:"12, 64, 288", dist:"143 m",  color:"#22D3EE" },
+    { name:"Farm",     pos:"-204, 68, 91",  dist:"1.204 m",color:"#34D399" }
+  ];
+
+  /* Per-mod settings, shaped by what that mod actually needs. */
+  const SETTINGS = {
+    scale:   { kind:"slider", label:"HUD-Skalierung", hint:"Größe des Widgets", min:50, max:300, step:5, value:100, unit:"%" },
+    width:   { kind:"slider", label:"Breite",         hint:"Breite des Rahmens in Pixeln", min:40, max:400, step:2, value:120, unit:"px" },
+    height:  { kind:"slider", label:"Höhe",           hint:"Höhe des Rahmens in Pixeln", min:12, max:200, step:2, value:32, unit:"px" },
+    bg:      { kind:"select", label:"Hintergrund",    hint:"Fläche hinter dem Widget", options:["Blur","Color","Blank"], value:"Blur" },
+    color:   { kind:"color",  label:"Akzentfarbe",    hint:"Farbe von Text und Kontur", value:"#7C3AED" },
+    format:  { kind:"text",   label:"Textformat",     hint:"Platzhalter: {left} und {right}", value:"{left} | {right}" },
+    corners: { kind:"toggle", label:"Abgerundete Ecken", hint:"Statt der gekappten Kante", value:false }
+  };
+  const ORDER = ["scale","width","height","bg","color","format","corners"];
+
+  /* ── State ─────────────────────────────────────────────────────── */
+  const state = {
+    plus: false,
+    tab: "mods",
+    panel: null,      // rail panel, overrides the tab view when set
+    detail: null,     // mod id
+    query: "",
+    values: {}        // "modId.settingKey" -> value
+  };
+
+  const client = document.getElementById("client");
+  const body   = document.getElementById("body");
+  const status = document.getElementById("status");
+  const q      = document.getElementById("q");
+
+  const esc = s => String(s).replace(/[&<>"']/g, c =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+  const val = (modId, key) =>
+    state.values[modId + "." + key] ?? SETTINGS[key].value;
+
+  const setVal = (modId, key, v) => { state.values[modId + "." + key] = v; };
+
+  const locked = m => Boolean(m.plus) && !state.plus;
+
+  /* ── Views ─────────────────────────────────────────────────────── */
+
+  /* The prefix. Premium styling belongs to the wearer, so it is passed in per mark
+     rather than inherited from an ancestor - otherwise unlocking Voidrix+ would hand
+     the premium V to every friend in your list too. */
+  function vMark(isPlus) {
+    return '<span class="vmark' + (isPlus ? ' is-plus' : '') + '">V</span>';
+  }
+
+  function nametagPreview() {
+    return `
+      <div class="facet preview-wrap"><div class="in preview">
+        <h3>So sieht dich der Server</h3>
+        <div class="pv-grid">
+          <div class="pv">
+            <span class="cap">Über dem Kopf</span>
+            <span class="tagline">${vMark(state.plus)} Steve</span>
+          </div>
+          <div class="pv">
+            <span class="cap">Tab-Liste</span>
+            <div class="tab-row">
+              <span class="head" aria-hidden="true"></span>
+              ${vMark(state.plus)} <span>Steve</span>
+              <span class="ping">24 ms</span>
+            </div>
+          </div>
+          <div class="pv">
+            <span class="cap">Chat</span>
+            <div class="chat-row">${vMark(state.plus)} <span class="who">Steve:</span> gg wp</div>
+          </div>
+        </div>
+      </div></div>`;
+  }
+
+  function modCard(m) {
+    const isLocked = locked(m);
+    return `
+      <button class="card" data-mod="${m.id}" data-on="${m.on && !isLocked}" data-locked="${isLocked}">
+        <span class="in">
+          <span class="card-icon">${svg(m.icon)}</span>
+          <span>
+            <span class="card-head">
+              <span class="card-title">${esc(m.name)}</span>
+              ${m.isNew ? '<span class="badge badge-new">NEU</span>' : ""}
+              ${isLocked ? '<span class="badge badge-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>Voidrix+</span>' : ""}
+            </span>
+            <span class="card-desc">${esc(m.desc)}</span>
+          </span>
+          <span class="card-right">
+            <span class="dots" data-noop="1" aria-hidden="true">···</span>
+          </span>
+        </span>
+      </button>`;
+  }
+
+  function modsView() {
+    const query = state.query.trim().toLowerCase();
+    const match = m => !query ||
+      m.name.toLowerCase().includes(query) || m.desc.toLowerCase().includes(query);
+
+    let html = "";
+    let total = 0;
+
+    for (const cat of CATS) {
+      const list = MODS.filter(m => m.cat === cat.id && match(m));
+      if (!list.length) continue;
+      total += list.length;
+      html += `
+        <div class="sec">
+          <h2>${esc(cat.name)}</h2>
+          <span class="rule"></span>
+          <span class="count">${list.length}</span>
+        </div>
+        <div class="grid">${list.map(modCard).join("")}</div>`;
+    }
+
+    if (!total) {
+      html = `<p class="empty">Nichts gefunden für „${esc(state.query)}“. Andere Schreibweise probieren.</p>`;
+    }
+    return html;
+  }
+
+  function settingRow(modId, key) {
+    const s = SETTINGS[key];
+    const v = val(modId, key);
+    let control = "";
+
+    if (s.kind === "slider") {
+      control = `
+        <input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}"
+               data-set="${key}" aria-label="${esc(s.label)}">
+        <input class="num" type="number" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}"
+               data-set="${key}" aria-label="${esc(s.label)} als Zahl">
+        <span class="hex">${esc(s.unit)}</span>`;
+    } else if (s.kind === "select") {
+      control = `<select data-set="${key}" aria-label="${esc(s.label)}">` +
+        s.options.map(o => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("") +
+        `</select>`;
+    } else if (s.kind === "color") {
+      control = `<span class="hex">${esc(String(v).toUpperCase())}</span>
+                 <input class="swatch" type="color" value="${v}" data-set="${key}" aria-label="${esc(s.label)}">`;
+    } else if (s.kind === "text") {
+      control = `<input class="text-in" type="text" value="${esc(v)}" data-set="${key}" aria-label="${esc(s.label)}">`;
+    } else {
+      control = `<button class="sw" data-set="${key}" aria-pressed="${v}" aria-label="${esc(s.label)}"></button>`;
+    }
+
+    return `
+      <div class="row">
+        <span class="row-label"><b>${esc(s.label)}</b><span>${esc(s.hint)}</span></span>
+        <span class="row-control">${control}</span>
+      </div>`;
+  }
+
+  function detailView(modId) {
+    const m = MODS.find(x => x.id === modId);
+    if (!m) return modsView();
+    const isLocked = locked(m);
+
+    return `
+      <div class="detail-head">
+        <button class="back" id="back" aria-label="Zurück zur Übersicht">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h1 class="detail-title">${esc(m.name)}</h1>
+        ${isLocked ? '<span class="badge badge-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>Voidrix+</span>' : ""}
+        <span class="detail-actions">
+          <button class="link-btn" id="reset">Zurücksetzen</button>
+          <button class="sw" id="detailToggle" aria-pressed="${m.on && !isLocked}"
+                  aria-label="${esc(m.name)} ein- oder ausschalten" ${isLocked ? "disabled" : ""}></button>
+        </span>
+      </div>
+      <p class="detail-desc">${esc(m.desc)}${isLocked ? " Dieses Modul gehört zu Voidrix+ — löse links im Plus-Bereich deinen Code ein." : ""}</p>
+      <div class="rows">${ORDER.map(k => settingRow(m.id, k)).join("")}</div>`;
+  }
+
+  function plusView() {
+    const on = state.plus;
+    return `
+      <div class="facet" style="margin-bottom:12px"><div class="in plus-hero">
+        <span class="eyebrow">Voidrix+</span>
+        <h2>Das leuchtende V<br>vor deinem Namen</h2>
+        <p>Voidrix+ schaltet die kosmetischen Module frei und ersetzt das schlichte
+           V-Präfix durch die Premium-Variante — über dem Kopf, in der Tab-Liste und im Chat.</p>
+        <span class="state-pill ${on ? "state-on" : "state-off"}">
+          ${on ? "Aktiv" : "Nicht aktiv"}
+        </span>
+
+        <div class="redeem">
+          <input id="code" type="text" placeholder="Code einlösen" aria-label="Voidrix+ Code"
+                 autocomplete="off" spellcheck="false" ${on ? "disabled" : ""}>
+          <button class="btn" id="redeem" ${on ? "disabled" : ""}>Einlösen</button>
+          ${on ? '<button class="btn btn-ghost" id="revoke">Zurücksetzen</button>' : ""}
+        </div>
+        <p class="msg" id="msg" role="status" aria-live="polite"></p>
+      </div></div>
+
+      ${nametagPreview()}
+
+      <div class="sec"><h2>Mit Voidrix+ freigeschaltet</h2><span class="rule"></span>
+        <span class="count">${MODS.filter(m => m.plus).length}</span></div>
+      <div class="grid">${MODS.filter(m => m.plus).map(modCard).join("")}</div>`;
+  }
+
+  function friendsView() {
+    return `
+      <div class="sec"><h2>Freunde</h2><span class="rule"></span>
+        <span class="count">${FRIENDS.filter(f => f.state === "on").length} online</span></div>
+      <div class="list">
+        ${FRIENDS.map(f => `
+          <div class="list-row">
+            <span class="avatar" aria-hidden="true"></span>
+            <span>
+              <span class="who-name">${f.plus ? vMark(true) : ""}${esc(f.name)}</span>
+              <span class="who-sub">${esc(f.sub)}</span>
+            </span>
+            <span class="presence ${f.state}"><i aria-hidden="true"></i>${
+              f.state === "on" ? "Online" : f.state === "idle" ? "Abwesend" : "Offline"}</span>
+          </div>`).join("")}
+      </div>`;
+  }
+
+  function tilesView(title, items) {
+    return `
+      <div class="sec"><h2>${esc(title)}</h2><span class="rule"></span>
+        <span class="count">${items.length}</span></div>
+      <div class="tiles">
+        ${items.map(c => {
+          const isLocked = c.plus && !state.plus;
+          return `<div class="tile">
+            <span class="art" aria-hidden="true"></span>
+            <b>${esc(c.name)}</b>
+            <span>${isLocked ? "Gesperrt" : esc(c.sub)}</span>
+            ${isLocked ? '<span class="badge badge-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>Voidrix+</span>' : ""}
+          </div>`;
+        }).join("")}
+      </div>`;
+  }
+
+  function profilesView() {
+    return `
+      <div class="sec"><h2>Profile</h2><span class="rule"></span><span class="count">${PROFILES.length}</span></div>
+      <div class="list">
+        ${PROFILES.map(p => `
+          <div class="list-row">
+            <span class="avatar" aria-hidden="true"></span>
+            <span>
+              <span class="who-name">${esc(p.name)}</span>
+              <span class="who-sub">${esc(p.sub)}</span>
+            </span>
+            <span class="presence ${p.active ? "on" : "off"}">
+              <i aria-hidden="true"></i>${p.active ? "Aktiv" : "Wechseln"}</span>
+          </div>`).join("")}
+      </div>`;
+  }
+
+  function waypointsView() {
+    return `
+      <div class="sec"><h2>Waypoints</h2><span class="rule"></span><span class="count">${WAYPOINTS.length}</span></div>
+      <div class="list">
+        ${WAYPOINTS.map(w => `
+          <div class="list-row">
+            <span class="avatar" style="background:${w.color}" aria-hidden="true"></span>
+            <span>
+              <span class="who-name">${esc(w.name)}</span>
+              <span class="who-sub">${esc(w.pos)}</span>
+            </span>
+            <span class="presence on"><i aria-hidden="true"></i>${esc(w.dist)}</span>
+          </div>`).join("")}
+      </div>`;
+  }
+
+  /* ── Render ────────────────────────────────────────────────────── */
+  function render() {
+    client.dataset.plus = String(state.plus);
+    document.querySelectorAll(".rail-plus").forEach(b => b.dataset.unlocked = String(state.plus));
+
+    document.querySelectorAll(".tab").forEach(t =>
+      t.setAttribute("aria-current", String(!state.panel && t.dataset.tab === state.tab)));
+    document.querySelectorAll(".rail-btn").forEach(b =>
+      b.setAttribute("aria-current", String(b.dataset.panel === state.panel)));
+
+    document.querySelector(".search").classList.toggle("hidden",
+      Boolean(state.panel) || state.tab !== "mods" || Boolean(state.detail));
+
+    if (state.panel === "plus")        body.innerHTML = plusView();
+    else if (state.panel === "friends")   body.innerHTML = friendsView();
+    else if (state.panel === "cosmetics") body.innerHTML = tilesView("Cosmetics", COSMETICS);
+    else if (state.panel === "emotes")    body.innerHTML = tilesView("Emotes", EMOTES);
+    else if (state.detail)                body.innerHTML = detailView(state.detail);
+    else if (state.tab === "profiles")    body.innerHTML = profilesView();
+    else if (state.tab === "waypoints")   body.innerHTML = waypointsView();
+    else                                  body.innerHTML = modsView();
+
+    const online = FRIENDS.filter(f => f.state === "on").length;
+    const active = MODS.filter(m => m.on && !locked(m)).length;
+    status.textContent = `${active} Module aktiv · ${online} Freunde online`;
+  }
+
+  /* ── Events ────────────────────────────────────────────────────── */
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+    state.tab = t.dataset.tab; state.panel = null; state.detail = null; render();
+  }));
+
+  document.querySelectorAll(".rail-btn").forEach(b => b.addEventListener("click", () => {
+    state.panel = state.panel === b.dataset.panel ? null : b.dataset.panel;
+    state.detail = null;
+    render();
+  }));
+
+  q.addEventListener("input", () => {
+    state.query = q.value;
+    if (state.detail || state.panel) { state.detail = null; state.panel = null; }
+    state.tab = "mods";
+    render();
+  });
+
+  body.addEventListener("click", e => {
+    /* Card → detail, unless the toggle-ish affordance was hit */
+    const card = e.target.closest(".card");
+    if (card) {
+      state.detail = card.dataset.mod;
+      state.panel = null;
+      render();
+      return;
+    }
+
+    if (e.target.closest("#back")) { state.detail = null; render(); return; }
+
+    if (e.target.closest("#detailToggle")) {
+      const m = MODS.find(x => x.id === state.detail);
+      if (m && !locked(m)) { m.on = !m.on; render(); }
+      return;
+    }
+
+    if (e.target.closest("#reset")) {
+      for (const k of ORDER) delete state.values[state.detail + "." + k];
+      render();
+      return;
+    }
+
+    const swBtn = e.target.closest(".sw[data-set]");
+    if (swBtn) {
+      const key = swBtn.dataset.set;
+      setVal(state.detail, key, !val(state.detail, key));
+      swBtn.setAttribute("aria-pressed", String(val(state.detail, key)));
+      return;
+    }
+
+    if (e.target.closest("#redeem")) { redeem(); return; }
+    if (e.target.closest("#revoke")) {
+      state.plus = false;
+      render();
+      return;
+    }
+  });
+
+  body.addEventListener("input", e => {
+    const el = e.target.closest("[data-set]");
+    if (!el || !state.detail) return;
+    const key = el.dataset.set;
+
+    if (el.type === "range" || el.type === "number") {
+      const s = SETTINGS[key];
+      let v = Number(el.value);
+      if (Number.isNaN(v)) return;
+      v = Math.min(s.max, Math.max(s.min, v));
+      setVal(state.detail, key, v);
+      // Keep the paired slider and number field in step without a full re-render,
+      // so dragging never loses focus mid-gesture.
+      body.querySelectorAll(`[data-set="${key}"]`).forEach(o => { if (o !== el) o.value = v; });
+      return;
+    }
+    setVal(state.detail, key, el.value);
+    if (el.type === "color") {
+      const hex = el.parentElement.querySelector(".hex");
+      if (hex) hex.textContent = el.value.toUpperCase();
+    }
+  });
+
+  body.addEventListener("keydown", e => {
+    if (e.target.id === "code" && e.key === "Enter") { e.preventDefault(); redeem(); }
+  });
+
+  function redeem() {
+    const input = document.getElementById("code");
+    const msg = document.getElementById("msg");
+    if (!input || !msg) return;
+
+    const entered = input.value.trim().toLowerCase();
+    if (!entered) {
+      msg.className = "msg msg-bad";
+      msg.dataset.show = "true";
+      msg.innerHTML = iconBad() + "Gib zuerst einen Code ein.";
+      input.focus();
+      return;
+    }
+
+    if (entered === PLUS_CODE) {
+      state.plus = true;
+      render();
+      const m2 = document.getElementById("msg");
+      if (m2) {
+        m2.className = "msg msg-ok";
+        m2.dataset.show = "true";
+        m2.innerHTML = iconOk() + "Voidrix+ freigeschaltet. Dein V-Präfix ist jetzt die Premium-Variante.";
+      }
+    } else {
+      msg.className = "msg msg-bad";
+      msg.dataset.show = "true";
+      msg.innerHTML = iconBad() + "Code ungültig – prüfe deine Eingabe.";
+      input.select();
+    }
+  }
+
+  const iconOk = () => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5 11-11"/></svg>';
+  const iconBad = () => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+  /* ── Theme ─────────────────────────────────────────────────────── */
+  const sun = '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.9 4.9l1.9 1.9M17.2 17.2l1.9 1.9M19.1 4.9l-1.9 1.9M6.8 17.2l-1.9 1.9"/>';
+  const moon = '<path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/>';
+
+  function applyTheme(mode) {
+    document.documentElement.setAttribute("data-theme", mode);
+    document.getElementById("themeIcon").innerHTML = mode === "dark" ? moon : sun;
+  }
+  document.getElementById("themeBtn").addEventListener("click", () => {
+    const now = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+    applyTheme(now);
+  });
+  // The void is the identity, so the client opens dark whatever the OS prefers.
+  // The toggle is there for anyone who wants the pale variant.
+  applyTheme("dark");
+
+  /* ── Ambient void dust ─────────────────────────────────────────── */
+  const cv = document.getElementById("dust");
+  const ctx = cv.getContext("2d");
+  let motes = [], raf = 0;
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function seed() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    cv.width = innerWidth * dpr;
+    cv.height = innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.round(innerWidth * innerHeight / 26000);
+    motes = Array.from({ length: n }, () => ({
+      x: Math.random() * innerWidth,
+      y: Math.random() * innerHeight,
+      r: Math.random() * 1.5 + .4,
+      vy: -(Math.random() * .16 + .03),
+      vx: (Math.random() - .5) * .07,
+      a: Math.random() * .45 + .12,
+      cyan: Math.random() < .22
+    }));
+  }
+
+  function paint() {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (const m of motes) {
+      if (!still) {
+        m.y += m.vy; m.x += m.vx;
+        if (m.y < -4) { m.y = innerHeight + 4; m.x = Math.random() * innerWidth; }
+        if (m.x < -4) m.x = innerWidth + 4;
+        if (m.x > innerWidth + 4) m.x = -4;
+      }
+      ctx.beginPath();
+      ctx.fillStyle = m.cyan
+        ? `rgba(34,211,238,${m.a})`
+        : `rgba(155,107,245,${m.a})`;
+      ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (!still) raf = requestAnimationFrame(paint);
+  }
+
+  addEventListener("resize", () => { seed(); if (still) paint(); });
+  seed();
+  paint();
+
+  render();
+})();
+</script>
