@@ -9,7 +9,7 @@ public final class ServerHud extends SimpleHudModule {
     private final BoolSetting preferName;
 
     public ServerHud() {
-        super("server", "Server", "Address of the server you are playing on", 0.0, 0.0);
+        super("server", "Server", "Address of the server you are playing on", 1.0, 0.15);
         this.preferName = addBool("prefer_name", "Use saved name",
                 "Show the name from your server list instead of the raw address", false);
     }

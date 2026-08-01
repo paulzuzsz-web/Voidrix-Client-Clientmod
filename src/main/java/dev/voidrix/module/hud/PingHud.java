@@ -11,7 +11,7 @@ public final class PingHud extends SimpleHudModule {
     private final BoolSetting grade;
 
     public PingHud() {
-        super("ping", "Ping", "Latency to the server you are on", 0.0, 0.0);
+        super("ping", "Ping", "Latency to the server you are on", 1.0, 0.05);
         this.grade = addBool("grade", "Colour by value", "Green when low, red when high", true);
     }
 

@@ -6,7 +6,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 /** How many players are currently online. */
 public final class PlayerCountHud extends SimpleHudModule {
     public PlayerCountHud() {
-        super("player_count", "Players", "Number of players on the server", 0.0, 0.0);
+        super("player_count", "Players", "Number of players on the server", 1.0, 0.10);
     }
 
     private static int count() {

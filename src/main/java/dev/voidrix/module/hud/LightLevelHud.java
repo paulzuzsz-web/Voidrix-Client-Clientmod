@@ -16,7 +16,7 @@ public final class LightLevelHud extends SimpleHudModule {
     private final BoolSetting warnOnSpawnable;
 
     public LightLevelHud() {
-        super("light", "Light level", "Block light at your feet", 0.0, 0.0);
+        super("light", "Light level", "Block light at your feet", 0.0, 0.25);
         this.warnOnSpawnable = addBool("warn", "Warn when spawnable",
                 "Turn red when the light is low enough for mobs", true);
     }

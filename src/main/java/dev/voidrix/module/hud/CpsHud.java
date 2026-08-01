@@ -24,7 +24,7 @@ public final class CpsHud extends SimpleHudModule {
     private boolean rightWasDown;
 
     public CpsHud() {
-        super("cps", "CPS", "How many times per second you are clicking", 0.0, 0.0);
+        super("cps", "CPS", "How many times per second you are clicking", 1.0, 0.35);
         this.button = addEnum("button", "Button", "Which mouse button to count", Button.LEFT);
     }
 

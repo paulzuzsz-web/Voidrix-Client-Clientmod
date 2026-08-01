@@ -8,7 +8,7 @@ public final class MemoryHud extends SimpleHudModule {
     private final EnumSetting<Display> display;
 
     public MemoryHud() {
-        super("memory", "Memory", "How much of the allocated heap is in use", 0.0, 0.0);
+        super("memory", "Memory", "How much of the allocated heap is in use", 1.0, 0.30);
         this.display = addEnum("display", "Display", "What to show", Display.PERCENT);
     }
 

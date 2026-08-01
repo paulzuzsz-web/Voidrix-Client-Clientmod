@@ -9,7 +9,7 @@ public final class FpsHud extends SimpleHudModule {
     private final BoolSetting grade;
 
     public FpsHud() {
-        super("fps", "FPS", "Frames per second", 0.0, 0.0);
+        super("fps", "FPS", "Frames per second", 0.0, 0.00);
         this.grade = addBool("grade", "Colour by value", "Green when smooth, red when struggling", true);
     }
 

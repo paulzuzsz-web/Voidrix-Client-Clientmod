@@ -92,11 +92,16 @@ public final class HudEditorScreen extends Screen {
             boolean hovered = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
             boolean active = widget == dragged;
 
-            // Selection frame around the widget's real bounds.
+            // Selection frame around the widget's real bounds. The idle frame is deliberately
+            // bright: in the editor you need to see where a widget's box ends even when the widget
+            // itself is a couple of dim characters.
             int frame = active ? Theme.ACCENT
-                    : (hovered ? Theme.alpha(Theme.ACCENT, 0.6f) : Theme.alpha(Theme.BORDER, 0.85f));
+                    : (hovered ? Theme.ACCENT_ALT : Theme.alpha(Theme.ACCENT, 0.45f));
             Draw.roundRect(g, x - 2, y - 2, w + 4, h + 4, Theme.RADIUS_SM,
-                    Theme.alpha(active ? Theme.ACCENT : 0xFF000000, active ? 0.12f : 0.35f));
+                    Theme.alpha(active ? Theme.ACCENT : 0xFF000000, active ? 0.16f : 0.45f));
+            if (active || hovered) {
+                Draw.glow(g, x - 2, y - 2, w + 4, h + 4, Theme.RADIUS_SM, 4f, Theme.ACCENT, 0.22f);
+            }
             Draw.roundRectOutline(g, x - 2, y - 2, w + 4, h + 4, Theme.RADIUS_SM, 1f, frame);
 
             try {

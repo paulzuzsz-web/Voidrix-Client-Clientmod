@@ -11,7 +11,7 @@ public final class LookingAtHud extends SimpleHudModule {
     private final BoolSetting includeEntities;
 
     public LookingAtHud() {
-        super("looking_at", "Looking at", "The block or entity under your crosshair", 0.0, 0.0);
+        super("looking_at", "Looking at", "The block or entity under your crosshair", 0.0, 0.35);
         this.includeEntities = addBool("entities", "Include entities", "Also name entities, not just blocks", true);
     }
 

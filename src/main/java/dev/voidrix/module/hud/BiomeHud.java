@@ -10,7 +10,7 @@ public final class BiomeHud extends SimpleHudModule {
     private final EnumSetting<NameStyle> style;
 
     public BiomeHud() {
-        super("biome", "Biome", "The biome at your feet", 0.0, 0.0);
+        super("biome", "Biome", "The biome at your feet", 0.0, 0.15);
         this.style = addEnum("style", "Name style", "How the biome id is written out", NameStyle.PRETTY);
     }
 

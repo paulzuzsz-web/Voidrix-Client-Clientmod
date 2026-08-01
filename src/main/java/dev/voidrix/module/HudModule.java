@@ -27,7 +27,12 @@ public abstract class HudModule extends Module {
     protected final BoolSetting shadow;
 
     protected HudModule(String id, String name, String description, double defaultX, double defaultY) {
-        super(id, name, description, Category.HUD);
+        this(id, name, description, Category.HUD, defaultX, defaultY);
+    }
+
+    protected HudModule(String id, String name, String description, Category category,
+                        double defaultX, double defaultY) {
+        super(id, name, description, category);
         this.posX = defaultX;
         this.posY = defaultY;
         this.scale = addDouble("scale", "Scale", "Size of the widget", 1.0, 0.5, 3.0, 2, "x");

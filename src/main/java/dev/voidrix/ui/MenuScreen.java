@@ -10,10 +10,12 @@ import dev.voidrix.setting.DoubleSetting;
 import dev.voidrix.setting.EnumSetting;
 import dev.voidrix.setting.IntSetting;
 import dev.voidrix.setting.Setting;
+import dev.voidrix.setting.StringSetting;
 import dev.voidrix.util.Keyboard;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -33,14 +35,20 @@ import java.util.Map;
  */
 public final class MenuScreen extends Screen {
     private static final int HEADER_H = 44;
-    private static final int SIDEBAR_W = 112;
-    private static final int LIST_W = 186;
     private static final int ROW_H = 30;
 
     private int panelX;
     private int panelY;
     private int panelW;
     private int panelH;
+
+    /**
+     * Column widths, worked out from the panel rather than fixed. A fixed 112px sidebar looks
+     * right next to a small font and clips its own labels next to a large one, so the columns are
+     * sized as a share of the panel and then clamped to sane bounds.
+     */
+    private int sidebarW;
+    private int listW;
 
     private Category selectedCategory = Category.HUD;
     private Module selectedModule;
@@ -54,6 +62,8 @@ public final class MenuScreen extends Screen {
     private int dragChannel = -1;
     /** Module waiting for the next key press to become its hotkey. */
     private Module bindingModule;
+    /** Text field currently accepting typing, if any. */
+    private StringSetting focusedText;
 
     private final Map<String, Anim> hovers = new HashMap<>();
     private final Anim opening = new Anim(0f, 0.16f);
@@ -65,18 +75,41 @@ public final class MenuScreen extends Screen {
 
     @Override
     protected void init() {
-        panelW = Math.min(520, width - 40);
-        panelH = Math.min(322, height - 40);
+        panelW = Math.min(580, width - 24);
+        panelH = Math.min(340, height - 24);
         panelX = (width - panelW) / 2;
         panelY = (height - panelH) / 2;
+
+        // The sidebar only ever holds a short word and a count; the settings column carries the
+        // longest labels, so it gets whatever is left over.
+        int widestCategory = 0;
+        for (Category category : visibleCategories()) {
+            widestCategory = Math.max(widestCategory, font.width(category.displayName()));
+        }
+        sidebarW = Math.clamp(widestCategory + 46, 86, Math.round(panelW * 0.26f));
+        listW = Math.clamp(Math.round(panelW * 0.32f), 120, 220);
+
         opening.target(1f);
 
-        if (selectedModule == null) {
+        if (selectedModule == null || !visibleCategories().contains(selectedCategory)) {
+            List<Category> categories = visibleCategories();
+            if (!categories.isEmpty() && !categories.contains(selectedCategory)) {
+                selectedCategory = categories.getFirst();
+            }
             List<Module> inCategory = VoidrixClient.modules().byCategory(selectedCategory);
-            if (!inCategory.isEmpty()) {
-                selectedModule = inCategory.getFirst();
+            selectedModule = inCategory.isEmpty() ? null : inCategory.getFirst();
+        }
+    }
+
+    /** Categories that actually have something in them - an empty tab is just noise. */
+    private static List<Category> visibleCategories() {
+        List<Category> out = new ArrayList<>();
+        for (Category category : Category.values()) {
+            if (!VoidrixClient.modules().byCategory(category).isEmpty()) {
+                out.add(category);
             }
         }
+        return out;
     }
 
     private Anim hover(String key) {
@@ -95,10 +128,11 @@ public final class MenuScreen extends Screen {
 
         float open = Anim.easeOut(opening.update(dt));
 
-        // Dim and blur the game behind the panel.
-        g.fill(0, 0, width, height, Theme.alpha(0xFF05050A, 0.72f * open));
+        // Dim the game behind the panel. The blur is not ours to request: the screen framework
+        // already issues one per frame through extractBackground, and asking for a second throws
+        // "Can only blur once per frame".
+        g.fill(0, 0, width, height, Theme.alpha(0xFF05050A, 0.66f * open));
         g.nextStratum();
-        g.blurBeforeThisStratum();
 
         // Slide the panel up slightly as it fades in.
         int lift = Math.round((1f - open) * 12f);
@@ -117,9 +151,9 @@ public final class MenuScreen extends Screen {
         int bodyH = panelH - HEADER_H;
 
         renderSidebar(g, px, bodyY, bodyH, mouseX, mouseY, dt);
-        renderModuleList(g, px + SIDEBAR_W, bodyY, LIST_W, bodyH, mouseX, mouseY, dt);
-        renderSettings(g, px + SIDEBAR_W + LIST_W, bodyY,
-                panelW - SIDEBAR_W - LIST_W, bodyH, mouseX, mouseY, dt);
+        renderModuleList(g, px + sidebarW, bodyY, listW, bodyH, mouseX, mouseY, dt);
+        renderSettings(g, px + sidebarW + listW, bodyY,
+                panelW - sidebarW - listW, bodyH, mouseX, mouseY, dt);
     }
 
     private void renderHeader(GuiGraphicsExtractor g, int px, int py, float dt) {
@@ -149,19 +183,20 @@ public final class MenuScreen extends Screen {
 
     private void renderSidebar(GuiGraphicsExtractor g, int x, int y, int h,
                                int mouseX, int mouseY, float dt) {
-        Draw.vLine(g, x + SIDEBAR_W - 1, y, h, Theme.BORDER_SOFT);
+        Draw.vLine(g, x + sidebarW - 1, y, h, Theme.BORDER_SOFT);
 
+        List<Category> categories = visibleCategories();
         int cy = y + Theme.PAD;
-        for (Category category : Category.values()) {
+        for (Category category : categories) {
             boolean selected = category == selectedCategory;
-            boolean hovered = inside(mouseX, mouseY, x + 8, cy, SIDEBAR_W - 16, 26);
+            boolean hovered = inside(mouseX, mouseY, x + 8, cy, sidebarW - 16, 26);
 
             Anim anim = hover("cat:" + category.name());
             anim.target(selected ? 1f : (hovered ? 0.45f : 0f));
             float t = anim.update(dt);
 
             if (t > 0.001f) {
-                Draw.roundRect(g, x + 8, cy, SIDEBAR_W - 16, 26, Theme.RADIUS_MD,
+                Draw.roundRect(g, x + 8, cy, sidebarW - 16, 26, Theme.RADIUS_MD,
                         Theme.mix(0x00000000, Theme.SURFACE_HOVER, t));
             }
             if (selected) {
@@ -169,19 +204,25 @@ public final class MenuScreen extends Screen {
                 Draw.roundRect(g, x + 8, cy + 6, 2.5f, 14, 1.25f, Theme.ACCENT);
             }
 
-            int textColor = Theme.mix(Theme.TEXT_DIM, Theme.TEXT, t);
-            Draw.text(g, font, category.displayName(), x + 18, cy + 9, textColor);
-
             int moduleCount = VoidrixClient.modules().byCategory(category).size();
-            Draw.textRight(g, font, String.valueOf(moduleCount), x + SIDEBAR_W - 16, cy + 9,
-                    Theme.TEXT_FAINT);
+            String countText = String.valueOf(moduleCount);
+            int countW = font.width(countText);
+
+            int textColor = Theme.mix(Theme.TEXT_DIM, Theme.TEXT, t);
+            String name = Draw.ellipsize(font, category.displayName(), sidebarW - 26 - countW - 6);
+            Draw.text(g, font, name, x + 18, cy + 9, textColor);
+            Draw.textRight(g, font, countText, x + sidebarW - 14, cy + 9, Theme.TEXT_FAINT);
 
             cy += 30;
         }
 
-        // Footer hint.
-        Draw.text(g, font, "RShift menu", x + 10, y + h - 26, Theme.TEXT_FAINT);
-        Draw.text(g, font, "RCtrl  HUD", x + 10, y + h - 15, Theme.TEXT_FAINT);
+        // Key hints, but only when the categories have not already used up the column - otherwise
+        // they land on top of the last one.
+        int hintTop = y + h - 26;
+        if (cy + 8 < hintTop) {
+            Draw.text(g, font, "RShift  menu", x + 10, hintTop, Theme.TEXT_FAINT);
+            Draw.text(g, font, "RCtrl   HUD", x + 10, y + h - 14, Theme.TEXT_FAINT);
+        }
     }
 
     private void renderModuleList(GuiGraphicsExtractor g, int x, int y, int w, int h,
@@ -333,6 +374,10 @@ public final class MenuScreen extends Screen {
             // Title, swatch, three channel sliders and the rainbow toggle, with room to breathe.
             return 74;
         }
+        if (setting instanceof StringSetting) {
+            // Label on its own line, so the field can use the full width.
+            return 34;
+        }
         return 22;
     }
 
@@ -359,7 +404,9 @@ public final class MenuScreen extends Screen {
         Setting<?> setting = row.setting;
 
         if (setting instanceof BoolSetting bool) {
-            Draw.text(g, font, bool.displayName(), row.x, y + 5, Theme.TEXT_DIM);
+            // Reserve the switch's own width so a long name is cut short instead of running under it.
+            Draw.text(g, font, Draw.ellipsize(font, bool.displayName(), row.width - 30),
+                    row.x, y + 5, Theme.TEXT_DIM);
             Anim anim = hover("set:" + selectedModule.id() + ":" + bool.id());
             anim.target(bool.value() ? 1f : 0f);
             toggle(g, row.x + row.width - 24, y + 3, anim.update(dt));
@@ -378,21 +425,50 @@ public final class MenuScreen extends Screen {
         }
 
         if (setting instanceof EnumSetting<?> choice) {
-            Draw.text(g, font, choice.displayName(), row.x, y + 7, Theme.TEXT_DIM);
             String label = choice.currentLabel();
-            float cw = font.width(label) + 16;
+            float cw = Math.min(font.width(label) + 16, row.width * 0.6f);
+            Draw.text(g, font, Draw.ellipsize(font, choice.displayName(), row.width - (int) cw - 8),
+                    row.x, y + 7, Theme.TEXT_DIM);
             float cx = row.x + row.width - cw;
             boolean hovered = inside(mouseX, mouseY, (int) cx, y + 3, (int) cw, 17);
             Draw.roundRect(g, cx, y + 3, cw, 17, Theme.RADIUS_SM,
                     hovered ? Theme.SURFACE_ACTIVE : Theme.SURFACE_RAISED);
             Draw.roundRectOutline(g, cx, y + 3, cw, 17, Theme.RADIUS_SM, 1f,
                     Theme.alpha(Theme.ACCENT, hovered ? 0.5f : 0.22f));
-            Draw.text(g, font, label, cx + 8, y + 7, Theme.TEXT);
+            Draw.textCentered(g, font, Draw.ellipsize(font, label, (int) cw - 10),
+                    cx + cw / 2f, y + 7, Theme.TEXT);
+            return;
+        }
+
+        if (setting instanceof StringSetting text) {
+            Draw.text(g, font, Draw.ellipsize(font, text.displayName(), row.width),
+                    row.x, y + 1, Theme.TEXT_DIM);
+
+            boolean focused = focusedText == text;
+            float fieldY = y + 13;
+            Draw.roundRect(g, row.x, fieldY, row.width, 17, Theme.RADIUS_SM,
+                    focused ? Theme.SURFACE_ACTIVE : Theme.SURFACE_RAISED);
+            Draw.roundRectOutline(g, row.x, fieldY, row.width, 17, Theme.RADIUS_SM, 1f,
+                    Theme.alpha(Theme.ACCENT, focused ? 0.8f : 0.22f));
+
+            String shown = text.isBlank() ? text.placeholder() : text.value();
+            int color = text.isBlank() ? Theme.TEXT_FAINT : Theme.TEXT;
+            // Keep the caret in view by showing the tail of an overlong value.
+            String fitted = tailFit(shown, row.width - 12);
+            Draw.text(g, font, fitted, row.x + 5, fieldY + 5, color);
+            if (focused) {
+                float caretX = row.x + 5 + font.width(fitted) + 1;
+                boolean on = (System.currentTimeMillis() / 500L) % 2 == 0;
+                if (on) {
+                    Draw.rect(g, caretX, fieldY + 4, 1, 9, Theme.ACCENT);
+                }
+            }
             return;
         }
 
         if (setting instanceof ColorSetting color) {
-            Draw.text(g, font, color.displayName(), row.x, y + 4, Theme.TEXT_DIM);
+            Draw.text(g, font, Draw.ellipsize(font, color.displayName(), row.width - 28),
+                    row.x, y + 4, Theme.TEXT_DIM);
 
             // Swatch showing the resolved colour, so rainbow mode is visible at a glance.
             Draw.roundRect(g, row.x + row.width - 22, y + 2, 22, 12, Theme.RADIUS_SM, color.resolve());
@@ -428,7 +504,10 @@ public final class MenuScreen extends Screen {
     }
 
     private void renderSlider(GuiGraphicsExtractor g, Row row, int y, String name, String value, float t) {
-        Draw.text(g, font, name, row.x, y + 3, Theme.TEXT_DIM);
+        // Value keeps its full width; the name gives way, since it is the more guessable half.
+        int valueW = font.width(value);
+        Draw.text(g, font, Draw.ellipsize(font, name, row.width - valueW - 8),
+                row.x, y + 3, Theme.TEXT_DIM);
         Draw.textRight(g, font, value, row.x + row.width, y + 3, Theme.TEXT);
 
         float trackY = y + 19;
@@ -440,11 +519,12 @@ public final class MenuScreen extends Screen {
     }
 
     private void renderHotkeyRow(GuiGraphicsExtractor g, Row row, int y, int mouseX, int mouseY, float dt) {
-        Draw.text(g, font, "Toggle key", row.x, y + 5, Theme.TEXT_DIM);
-
         boolean binding = bindingModule == selectedModule;
         String label = binding ? "Press a key..." : Keyboard.nameOf(selectedModule.keyCode());
-        float cw = Math.max(52f, font.width(label) + 16);
+        float cw = Math.min(Math.max(52f, font.width(label) + 16), row.width * 0.65f);
+
+        Draw.text(g, font, Draw.ellipsize(font, "Toggle key", row.width - (int) cw - 8),
+                row.x, y + 5, Theme.TEXT_DIM);
         float cx = row.x + row.width - cw;
         boolean hovered = inside(mouseX, mouseY, (int) cx, y + 1, (int) cw, 17);
 
@@ -453,8 +533,16 @@ public final class MenuScreen extends Screen {
                         : (hovered ? Theme.SURFACE_ACTIVE : Theme.SURFACE_RAISED));
         Draw.roundRectOutline(g, cx, y + 1, cw, 17, Theme.RADIUS_SM, 1f,
                 Theme.alpha(Theme.ACCENT, binding ? 0.8f : 0.22f));
-        Draw.textCentered(g, font, label, cx + cw / 2f, y + 5,
+        Draw.textCentered(g, font, Draw.ellipsize(font, label, (int) cw - 8), cx + cw / 2f, y + 5,
                 binding ? Theme.ACCENT : Theme.TEXT);
+    }
+
+    /** Width of the hotkey button, kept in one place so render and hit-testing cannot drift. */
+    private float hotkeyButtonWidth(Row row) {
+        String label = bindingModule == selectedModule
+                ? "Press a key..."
+                : Keyboard.nameOf(selectedModule.keyCode());
+        return Math.min(Math.max(52f, font.width(label) + 16), row.width * 0.65f);
     }
 
     // -------------------------------------------------------------------------------------
@@ -470,13 +558,19 @@ public final class MenuScreen extends Screen {
             return super.mouseClicked(event, doubleClick);
         }
 
+        // Any click drops text focus; clicking the field itself takes it back below.
+        if (focusedText != null) {
+            focusedText = null;
+            VoidrixClient.config().save();
+        }
+
         int bodyY = panelY + HEADER_H;
         int bodyH = panelH - HEADER_H;
 
         // Categories.
         int cy = bodyY + Theme.PAD;
-        for (Category category : Category.values()) {
-            if (inside(mx, my, panelX + 8, cy, SIDEBAR_W - 16, 26)) {
+        for (Category category : visibleCategories()) {
+            if (inside(mx, my, panelX + 8, cy, sidebarW - 16, 26)) {
                 if (selectedCategory != category) {
                     selectedCategory = category;
                     listScroll = 0f;
@@ -490,10 +584,10 @@ public final class MenuScreen extends Screen {
         }
 
         // Module rows.
-        int listX = panelX + SIDEBAR_W;
+        int listX = panelX + sidebarW;
         List<Module> modules = VoidrixClient.modules().byCategory(selectedCategory);
         int ry = (int) (bodyY + Theme.PAD - listScroll);
-        int rowW = LIST_W - Theme.PAD * 2 - 1;
+        int rowW = listW - Theme.PAD * 2 - 1;
         for (Module module : modules) {
             if (inside(mx, my, listX + Theme.PAD, ry, rowW, ROW_H - 4)) {
                 if (mx >= listX + Theme.PAD + rowW - 30) {
@@ -510,8 +604,8 @@ public final class MenuScreen extends Screen {
 
         // Settings pane.
         if (selectedModule != null) {
-            int sx = panelX + SIDEBAR_W + LIST_W;
-            int sw = panelW - SIDEBAR_W - LIST_W;
+            int sx = panelX + sidebarW + listW;
+            int sw = panelW - sidebarW - listW;
             int top = bodyY + Theme.PAD + 28;
             List<Row> rows = layoutRows(sx + Theme.PAD, sw - Theme.PAD * 2);
             int y = (int) (top - settingsScroll);
@@ -533,7 +627,7 @@ public final class MenuScreen extends Screen {
 
     private boolean handleRowClick(Row row, int y, int mx, int my) {
         if (row.hotkey) {
-            float cw = Math.max(52f, font.width(Keyboard.nameOf(selectedModule.keyCode())) + 16);
+            float cw = hotkeyButtonWidth(row);
             if (inside(mx, my, (int) (row.x + row.width - cw), y + 1, (int) cw, 17)) {
                 bindingModule = selectedModule;
                 return true;
@@ -565,6 +659,14 @@ public final class MenuScreen extends Screen {
             choice.cycle();
             VoidrixClient.config().save();
             return true;
+        }
+
+        if (setting instanceof StringSetting text) {
+            if (inside(mx, my, row.x, y + 13, row.width, 17)) {
+                focusedText = text;
+                return true;
+            }
+            return false;
         }
 
         if (setting instanceof ColorSetting color) {
@@ -608,8 +710,8 @@ public final class MenuScreen extends Screen {
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
         if (dragging != null && selectedModule != null) {
-            int sx = panelX + SIDEBAR_W + LIST_W;
-            int sw = panelW - SIDEBAR_W - LIST_W;
+            int sx = panelX + sidebarW + listW;
+            int sw = panelW - sidebarW - listW;
             List<Row> rows = layoutRows(sx + Theme.PAD, sw - Theme.PAD * 2);
             for (Row row : rows) {
                 if (row.setting != dragging) {
@@ -639,11 +741,11 @@ public final class MenuScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        int listX = panelX + SIDEBAR_W;
+        int listX = panelX + sidebarW;
         float amount = (float) scrollY * 18f;
-        if (mouseX >= listX && mouseX < listX + LIST_W) {
+        if (mouseX >= listX && mouseX < listX + listW) {
             listScroll -= amount;
-        } else if (mouseX >= listX + LIST_W) {
+        } else if (mouseX >= listX + listW) {
             settingsScroll -= amount;
         }
         return true;
@@ -660,7 +762,40 @@ public final class MenuScreen extends Screen {
             VoidrixClient.config().save();
             return true;
         }
+
+        if (focusedText != null) {
+            switch (event.key()) {
+                case GLFW.GLFW_KEY_BACKSPACE -> {
+                    focusedText.backspace();
+                    return true;
+                }
+                // Escape and Enter both just leave the field; Escape must not also close the menu.
+                case GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER, GLFW.GLFW_KEY_TAB -> {
+                    focusedText = null;
+                    VoidrixClient.config().save();
+                    return true;
+                }
+                default -> {
+                    return true;
+                }
+            }
+        }
         return super.keyPressed(event);
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        if (focusedText == null) {
+            return super.charTyped(event);
+        }
+        String typed = event.codepointAsString();
+        for (int i = 0; i < typed.length(); i++) {
+            char c = typed.charAt(i);
+            if (c >= ' ' && c != 127) {
+                focusedText.append(c);
+            }
+        }
+        return true;
     }
 
     @Override
@@ -680,6 +815,21 @@ public final class MenuScreen extends Screen {
 
     private static boolean inside(int mx, int my, float x, float y, float w, float h) {
         return mx >= x && mx < x + w && my >= y && my < y + h;
+    }
+
+    /**
+     * Trims a string from the left until it fits, so a text field being typed into shows its end
+     * rather than its beginning.
+     */
+    private String tailFit(String s, int maxWidth) {
+        if (font.width(s) <= maxWidth) {
+            return s;
+        }
+        int start = 0;
+        while (start < s.length() && font.width(s.substring(start)) > maxWidth) {
+            start++;
+        }
+        return s.substring(start);
     }
 
     private static float clampScroll(float scroll, int contentH, int viewH) {

@@ -25,7 +25,13 @@ public abstract class SimpleHudModule extends HudModule {
 
     protected SimpleHudModule(String id, String name, String description,
                               double defaultX, double defaultY, int defaultColor) {
-        super(id, name, description, defaultX, defaultY);
+        this(id, name, description, dev.voidrix.module.Category.HUD, defaultX, defaultY, defaultColor);
+    }
+
+    protected SimpleHudModule(String id, String name, String description,
+                              dev.voidrix.module.Category category,
+                              double defaultX, double defaultY, int defaultColor) {
+        super(id, name, description, category, defaultX, defaultY);
         this.showLabel = addBool("show_label", "Show label", "Prefix the value with its name", true);
         this.valueColor = addColor("color", "Value colour", "Colour of the value text", defaultColor);
     }

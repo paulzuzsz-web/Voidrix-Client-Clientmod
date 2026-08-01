@@ -23,7 +23,13 @@ import dev.voidrix.module.hud.ServerHud;
 import dev.voidrix.module.hud.SessionHud;
 import dev.voidrix.module.hud.SpeedHud;
 import dev.voidrix.module.hud.WeatherHud;
+import dev.voidrix.module.combat.ComboHud;
+import dev.voidrix.module.combat.CooldownHud;
+import dev.voidrix.module.combat.ReachHud;
+import dev.voidrix.module.combat.SaturationHud;
+import dev.voidrix.module.combat.TargetHud;
 import dev.voidrix.module.iface.CleanHudModule;
+import dev.voidrix.module.misc.DiscordModule;
 import dev.voidrix.module.visual.FullbrightModule;
 import dev.voidrix.module.visual.NoBobbingModule;
 import dev.voidrix.module.visual.ZoomModule;
@@ -55,6 +61,7 @@ public final class VoidrixClient implements ClientModInitializer {
 
     private FullbrightModule fullbright;
     private NoBobbingModule noBobbing;
+    private DiscordModule discord;
 
     public static ModuleManager modules() {
         return modules;
@@ -86,9 +93,10 @@ public final class VoidrixClient implements ClientModInitializer {
         });
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
-            // Hand back any vanilla option we were holding, then persist.
+            // Hand back any vanilla option we were holding, drop the Discord link, then persist.
             fullbright.restore();
             noBobbing.restore();
+            discord.shutdown();
             config.save();
         });
 
@@ -98,6 +106,7 @@ public final class VoidrixClient implements ClientModInitializer {
     private void registerModules() {
         fullbright = new FullbrightModule();
         noBobbing = new NoBobbingModule();
+        discord = new DiscordModule();
 
         modules.registerAll(
                 // HUD widgets
@@ -122,13 +131,23 @@ public final class VoidrixClient implements ClientModInitializer {
                 new ServerHud(),
                 new PlayerCountHud(),
 
+                // Combat - all read-only readouts, nothing that changes how you fight
+                new TargetHud(),
+                new CooldownHud(),
+                new ComboHud(),
+                new ReachHud(),
+                new SaturationHud(),
+
                 // Visual
                 fullbright,
                 noBobbing,
                 new ZoomModule(),
 
                 // Interface
-                new CleanHudModule()
+                new CleanHudModule(),
+
+                // Misc
+                discord
         );
     }
 

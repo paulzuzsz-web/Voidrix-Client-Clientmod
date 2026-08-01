@@ -10,7 +10,7 @@ public final class DurabilityHud extends SimpleHudModule {
     private final EnumSetting<Display> display;
 
     public DurabilityHud() {
-        super("durability", "Durability", "Remaining uses on your held item", 0.0, 0.0);
+        super("durability", "Durability", "Remaining uses on your held item", 0.0, 0.45);
         this.display = addEnum("display", "Display", "How to write the remaining durability", Display.REMAINING);
     }
 

@@ -9,7 +9,7 @@ public final class DirectionHud extends SimpleHudModule {
     private final BoolSetting showAxis;
 
     public DirectionHud() {
-        super("direction", "Direction", "The compass direction you are facing", 0.0, 0.0);
+        super("direction", "Direction", "The compass direction you are facing", 0.0, 0.10);
         this.showAxis = addBool("show_axis", "Show axis", "Append the axis the direction runs along", true);
     }
 

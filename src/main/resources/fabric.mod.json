@@ -3,7 +3,7 @@
   "id": "voidrix",
   "version": "${version}",
   "name": "Voidrix Client",
-  "description": "A client-side quality-of-life modification for Minecraft: 20 movable HUD widgets, visual tweaks and vanilla HUD control, with a drag-and-drop editor. Settings live in one local file. No account, no server, no telemetry.",
+  "description": "A client-side quality-of-life modification for Minecraft: 25 movable HUD and combat widgets, visual tweaks, vanilla HUD control and optional Discord rich presence, with a drag-and-drop editor. Settings live in one local file. No account, no backend, no telemetry - the only feature that shares anything is Discord presence, which is opt-in.",
   "authors": [
     "Voidrix"
   ],

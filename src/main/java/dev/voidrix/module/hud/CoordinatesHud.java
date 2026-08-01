@@ -8,7 +8,7 @@ public final class CoordinatesHud extends SimpleHudModule {
     private final BoolSetting precise;
 
     public CoordinatesHud() {
-        super("coordinates", "Coordinates", "Your X, Y and Z position", 0.0, 0.0);
+        super("coordinates", "Coordinates", "Your X, Y and Z position", 0.0, 0.05);
         this.precise = addBool("precise", "Decimals", "Show one decimal place instead of whole blocks", false);
     }
 

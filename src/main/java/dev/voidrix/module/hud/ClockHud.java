@@ -17,7 +17,7 @@ public final class ClockHud extends SimpleHudModule {
     private final BoolSetting seconds;
 
     public ClockHud() {
-        super("clock", "Clock", "Your computer's clock", 0.0, 0.0);
+        super("clock", "Clock", "Your computer's clock", 1.0, 0.20);
         this.format = addEnum("format", "Format", "12 or 24 hour", Format.H24);
         this.seconds = addBool("seconds", "Show seconds", "Include seconds in the time", false);
     }

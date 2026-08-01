@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 /** Current weather in the world you are in. */
 public final class WeatherHud extends SimpleHudModule {
     public WeatherHud() {
-        super("weather", "Weather", "Whether it is clear, raining or storming", 0.0, 0.0);
+        super("weather", "Weather", "Whether it is clear, raining or storming", 0.0, 0.30);
     }
 
     @Override

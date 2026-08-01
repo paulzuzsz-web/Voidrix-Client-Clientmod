@@ -9,7 +9,7 @@ public final class HeldItemHud extends SimpleHudModule {
     private final BoolSetting showTotal;
 
     public HeldItemHud() {
-        super("held_item", "Held item", "What you are holding, and how many you have", 0.0, 0.0);
+        super("held_item", "Held item", "What you are holding, and how many you have", 0.0, 0.40);
         this.showTotal = addBool("show_total", "Show total",
                 "Count every matching item across your inventory", true);
     }

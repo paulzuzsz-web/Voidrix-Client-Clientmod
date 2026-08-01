@@ -5,7 +5,7 @@ public final class SessionHud extends SimpleHudModule {
     private final long startedAt = System.currentTimeMillis();
 
     public SessionHud() {
-        super("session", "Session", "Time since you launched the game", 0.0, 0.0);
+        super("session", "Session", "Time since you launched the game", 1.0, 0.25);
     }
 
     @Override

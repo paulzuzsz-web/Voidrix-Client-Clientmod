@@ -22,7 +22,7 @@ public final class SpeedHud extends SimpleHudModule {
     private boolean primed;
 
     public SpeedHud() {
-        super("speed", "Speed", "Your current movement speed", 0.0, 0.0);
+        super("speed", "Speed", "Your current movement speed", 0.0, 0.20);
         this.unit = addEnum("unit", "Unit", "Blocks per second or kilometres per hour", Unit.BLOCKS_PER_SECOND);
         this.horizontalOnly = addBool("horizontal", "Ignore vertical", "Measure only across the ground", true);
     }
