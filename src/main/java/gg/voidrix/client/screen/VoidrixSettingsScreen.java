@@ -5,124 +5,167 @@ import gg.voidrix.client.VoidrixConfig;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
 /**
  * Einstellungsmenue, erreichbar ueber die Rechte Umschalttaste.
  *
- * <p>Ein zentriertes Panel mit zwei Spalten. Alle Optionen sind Umschalter; gespeichert wird
- * beim Schliessen.
+ * <p>Aufbau: Kopfzeile mit Wortmarke, links eine Navigationsspalte, rechts der Inhalt der
+ * gewaehlten Kategorie. Beim Wechsel der Kategorie werden die Widgets neu aufgebaut, damit
+ * jede Seite ihr eigenes Layout bekommen kann.
  */
 public final class VoidrixSettingsScreen extends Screen {
 
-    private static final int PANEL_WIDTH = 400;
-    private static final int PANEL_PADDING = 18;
-    private static final int HEADER_HEIGHT = 42;
+    private static final String[] TABS = {"Render", "HUD", "Steuerung"};
 
-    private static final int COLUMN_WIDTH = 176;
-    private static final int COLUMN_GAP = 10;
+    private static final int PANEL_WIDTH = 424;
+    private static final int PANEL_HEIGHT = 244;
+    private static final int HEADER_HEIGHT = 40;
+    private static final int SIDEBAR_WIDTH = 116;
+
+    private static final int TAB_HEIGHT = 22;
+    private static final int TAB_GAP = 2;
+    private static final int CONTENT_PADDING = 14;
     private static final int ROW_HEIGHT = 20;
     private static final int ROW_GAP = 4;
-    private static final int ROWS_PER_COLUMN = 5;
-
-    private static final int SECTION_LABEL_HEIGHT = 14;
-    private static final int FOOTER_HEIGHT = 44;
-
-    private static final String SUBTITLE = "Client-Einstellungen";
-    private static final String FOOTER_HINT = "C  Zoom     G  Fullbright     Rechts-Umschalt  Menue";
+    private static final int SLIDER_HEIGHT = 28;
 
     private final Screen parent;
+    private int activeTab = 0;
 
     private int panelX;
     private int panelY;
-    private int panelHeight;
 
     public VoidrixSettingsScreen(Screen parent) {
         super(Component.literal(Voidrix.NAME));
         this.parent = parent;
     }
 
+    /** Nur fuer die Abnahme der Oberflaeche: erlaubt das Vorwaehlen einer Kategorie. */
+    public void selectTab(int index) {
+        if (index >= 0 && index < TABS.length) {
+            activeTab = index;
+            rebuildWidgets();
+        }
+    }
+
     @Override
     protected void init() {
-        VoidrixConfig config = Voidrix.config();
-
-        int rowsHeight = ROWS_PER_COLUMN * ROW_HEIGHT + (ROWS_PER_COLUMN - 1) * ROW_GAP;
-        panelHeight = HEADER_HEIGHT + PANEL_PADDING + SECTION_LABEL_HEIGHT + rowsHeight + FOOTER_HEIGHT;
         panelX = (this.width - PANEL_WIDTH) / 2;
-        panelY = Math.max(10, (this.height - panelHeight) / 2);
+        panelY = Math.max(10, (this.height - PANEL_HEIGHT) / 2);
 
-        int leftColumn = panelX + PANEL_PADDING;
-        int rightColumn = leftColumn + COLUMN_WIDTH + COLUMN_GAP;
-        int firstRowY = panelY + HEADER_HEIGHT + PANEL_PADDING + SECTION_LABEL_HEIGHT;
+        int tabX = panelX + 8;
+        int tabY = panelY + HEADER_HEIGHT + 10;
+        for (int i = 0; i < TABS.length; i++) {
+            this.addRenderableWidget(new CategoryTab(
+                    tabX, tabY + i * (TAB_HEIGHT + TAB_GAP), SIDEBAR_WIDTH - 16, TAB_HEIGHT,
+                    Component.literal(TABS[i]), i, () -> activeTab, this::selectTab));
+        }
 
-        addToggle(leftColumn, rowY(firstRowY, 0), "Fullbright",
-                () -> config.fullBright, v -> config.fullBright = v);
-        addToggle(leftColumn, rowY(firstRowY, 1), "No Hurt Cam",
-                () -> config.noHurtCam, v -> config.noHurtCam = v);
-        addToggle(leftColumn, rowY(firstRowY, 2), "Zoom",
-                () -> config.zoomEnabled, v -> config.zoomEnabled = v);
-        addToggle(leftColumn, rowY(firstRowY, 3), "Zoom weich",
-                () -> config.zoomSmooth, v -> config.zoomSmooth = v);
-        addToggle(leftColumn, rowY(firstRowY, 4), "Fenstertitel",
-                () -> config.customWindowTitle, v -> config.customWindowTitle = v);
-
-        addToggle(rightColumn, rowY(firstRowY, 0), "FPS-Anzeige",
-                () -> config.fpsHud, v -> config.fpsHud = v);
-        addToggle(rightColumn, rowY(firstRowY, 1), "Koordinaten",
-                () -> config.coordsHud, v -> config.coordsHud = v);
-        addToggle(rightColumn, rowY(firstRowY, 2), "Ping",
-                () -> config.pingHud, v -> config.pingHud = v);
-        addToggle(rightColumn, rowY(firstRowY, 3), "Uhr",
-                () -> config.clockHud, v -> config.clockHud = v);
-        addToggle(rightColumn, rowY(firstRowY, 4), "HUD-Hintergrund",
-                () -> config.hudBackground, v -> config.hudBackground = v);
-
-        int doneWidth = 120;
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-                .bounds(panelX + (PANEL_WIDTH - doneWidth) / 2,
-                        firstRowY + rowsHeight + PANEL_PADDING,
-                        doneWidth, ROW_HEIGHT)
-                .build());
+        switch (activeTab) {
+            case 0 -> buildRenderTab();
+            case 1 -> buildHudTab();
+            default -> buildControlsTab();
+        }
     }
 
-    private static int rowY(int firstRowY, int index) {
-        return firstRowY + index * (ROW_HEIGHT + ROW_GAP);
+    private int contentX() {
+        return panelX + SIDEBAR_WIDTH + CONTENT_PADDING;
     }
 
-    private void addToggle(int x, int y, String label, BooleanSupplier getter, Consumer<Boolean> setter) {
+    private int contentWidth() {
+        return PANEL_WIDTH - SIDEBAR_WIDTH - 2 * CONTENT_PADDING;
+    }
+
+    private int contentTop() {
+        return panelY + HEADER_HEIGHT + CONTENT_PADDING + 12;
+    }
+
+    private int rowY(int index) {
+        return contentTop() + index * (ROW_HEIGHT + ROW_GAP);
+    }
+
+    private void buildRenderTab() {
+        VoidrixConfig config = Voidrix.config();
+        addToggle(rowY(0), "Fullbright", () -> config.fullBright, v -> config.fullBright = v);
+        addToggle(rowY(1), "No Hurt Cam", () -> config.noHurtCam, v -> config.noHurtCam = v);
+        addToggle(rowY(2), "Zoom", () -> config.zoomEnabled, v -> config.zoomEnabled = v);
+        addToggle(rowY(3), "Zoom weich", () -> config.zoomSmooth, v -> config.zoomSmooth = v);
+
+        this.addRenderableWidget(new ValueSlider(
+                contentX(), rowY(4), contentWidth(), SLIDER_HEIGHT,
+                "Zoomfaktor", 1.5D, 20.0D, config.zoomDivisor,
+                v -> config.zoomDivisor = v));
+    }
+
+    private void buildHudTab() {
+        VoidrixConfig config = Voidrix.config();
+        addToggle(rowY(0), "FPS-Anzeige", () -> config.fpsHud, v -> config.fpsHud = v);
+        addToggle(rowY(1), "Koordinaten", () -> config.coordsHud, v -> config.coordsHud = v);
+        addToggle(rowY(2), "Ping", () -> config.pingHud, v -> config.pingHud = v);
+        addToggle(rowY(3), "Uhr", () -> config.clockHud, v -> config.clockHud = v);
+        addToggle(rowY(4), "Hintergrund", () -> config.hudBackground, v -> config.hudBackground = v);
+    }
+
+    private void buildControlsTab() {
+        VoidrixConfig config = Voidrix.config();
+        addToggle(rowY(0), "Fenstertitel", () -> config.customWindowTitle,
+                v -> config.customWindowTitle = v);
+    }
+
+    private void addToggle(int y, String label, BooleanSupplier getter, Consumer<Boolean> setter) {
         this.addRenderableWidget(new ToggleButton(
-                x, y, COLUMN_WIDTH, ROW_HEIGHT, Component.literal(label), getter, setter));
+                contentX(), y, contentWidth(), ROW_HEIGHT,
+                Component.literal(label), getter, setter));
     }
 
     @Override
     public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
-        super.extractBackground(g, mouseX, mouseY, partialTick);
+        g.fill(0, 0, this.width, this.height, Theme.SCRIM);
 
-        Theme.roundedRect(g, panelX, panelY, PANEL_WIDTH, panelHeight, Theme.PANEL_BG);
-        Theme.roundedRect(g, panelX, panelY, PANEL_WIDTH, HEADER_HEIGHT, Theme.HEADER_BG);
-        // Akzentlinie als Trenner zwischen Kopf und Inhalt.
-        g.fill(panelX + 1, panelY + HEADER_HEIGHT - 1, panelX + PANEL_WIDTH - 1,
-                panelY + HEADER_HEIGHT, Theme.ACCENT);
-        Theme.border(g, panelX, panelY, PANEL_WIDTH, panelHeight, Theme.PANEL_BORDER);
+        Theme.verticalGradient(g, panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT,
+                Theme.PANEL_TOP, Theme.PANEL_BOTTOM);
+        Theme.roundedRect(g, panelX, panelY + HEADER_HEIGHT, SIDEBAR_WIDTH,
+                PANEL_HEIGHT - HEADER_HEIGHT, Theme.SIDEBAR_SOLID);
+
+        // Trenner: waagerecht unter dem Kopf, senkrecht neben der Navigation.
+        g.fill(panelX + 1, panelY + HEADER_HEIGHT, panelX + PANEL_WIDTH - 1,
+                panelY + HEADER_HEIGHT + 1, Theme.DIVIDER);
+        g.fill(panelX + SIDEBAR_WIDTH, panelY + HEADER_HEIGHT + 1,
+                panelX + SIDEBAR_WIDTH + 1, panelY + PANEL_HEIGHT - 1, Theme.DIVIDER);
+
+        Theme.border(g, panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT, Theme.PANEL_BORDER);
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
 
-        int centerX = panelX + PANEL_WIDTH / 2;
-        g.centeredText(this.font, Voidrix.NAME.toUpperCase(), centerX, panelY + 12, Theme.ACCENT);
-        g.centeredText(this.font, SUBTITLE, centerX, panelY + 25, Theme.TEXT_MUTED);
+        // Wortmarke: Akzentblock als Logo-Ersatz, danach der Name.
+        int markX = panelX + 16;
+        int markY = panelY + 15;
+        g.fill(markX, markY, markX + 3, markY + 10, Theme.ACCENT);
+        g.fill(markX + 5, markY + 3, markX + 8, markY + 10, Theme.ACCENT_ALT);
+        g.text(this.font, Voidrix.NAME.toUpperCase(), markX + 14, markY + 1, Theme.TEXT);
 
-        int sectionY = panelY + HEADER_HEIGHT + PANEL_PADDING;
-        int leftColumn = panelX + PANEL_PADDING;
-        g.text(this.font, "RENDER", leftColumn, sectionY, Theme.TEXT_SECTION);
-        g.text(this.font, "HUD", leftColumn + COLUMN_WIDTH + COLUMN_GAP, sectionY, Theme.TEXT_SECTION);
+        String version = "v" + Voidrix.VERSION;
+        g.text(this.font, version,
+                panelX + PANEL_WIDTH - 16 - this.font.width(version), markY + 1, Theme.TEXT_MUTED);
 
-        g.centeredText(this.font, FOOTER_HINT, centerX, panelY + panelHeight - 14, Theme.TEXT_MUTED);
+        // Ueberschrift des aktiven Bereichs.
+        g.text(this.font, TABS[activeTab].toUpperCase(),
+                contentX(), panelY + HEADER_HEIGHT + CONTENT_PADDING - 2, Theme.TEXT_SECTION);
+        Theme.fadingRule(g, contentX(), panelY + HEADER_HEIGHT + CONTENT_PADDING + 8,
+                contentWidth(), Theme.DIVIDER);
+
+        String hint = switch (activeTab) {
+            case 0 -> "C halten zum Zoomen  ·  G schaltet Fullbright";
+            case 1 -> "Anzeige oben links  ·  Position in config/voidrix.json";
+            default -> "Rechte Umschalttaste oeffnet und schliesst dieses Menue";
+        };
+        g.centeredText(this.font, hint, panelX + PANEL_WIDTH / 2,
+                panelY + PANEL_HEIGHT - 16, Theme.TEXT_MUTED);
     }
 
     @Override

@@ -51,7 +51,7 @@ public final class ToggleButton extends AbstractButton {
         int height = getHeight();
 
         Theme.roundedRect(g, x, y, width, height,
-                isHoveredOrFocused() ? Theme.ROW_BG_HOVER : Theme.ROW_BG);
+                isHoveredOrFocused() ? Theme.ROW_HOVER : Theme.ROW);
 
         // Akzentkante links markiert aktive Optionen auch ohne Blick auf den Schalter.
         if (on) {

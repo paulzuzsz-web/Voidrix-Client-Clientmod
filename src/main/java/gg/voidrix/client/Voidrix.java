@@ -26,6 +26,12 @@ public final class Voidrix implements ClientModInitializer {
     public static final String NAME = "Voidrix";
     public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
+    /** Aus den Mod-Metadaten gelesen, damit Anzeige und Build nicht auseinanderlaufen. */
+    public static final String VERSION = FabricLoader.getInstance()
+            .getModContainer(MOD_ID)
+            .map(container -> container.getMetadata().getVersion().getFriendlyString())
+            .orElse("dev");
+
     private static final Path CONFIG_PATH =
             FabricLoader.getInstance().getConfigDir().resolve("voidrix.json");
 
@@ -52,6 +58,7 @@ public final class Voidrix implements ClientModInitializer {
         settingsKey = register("key.voidrix.settings", GLFW.GLFW_KEY_RIGHT_SHIFT);
 
         ClientTickEvents.END_CLIENT_TICK.register(Voidrix::onTick);
+        ScreenshotHarness.installIfRequested();
 
         LOGGER.info("{} bereit - Konfiguration: {}", NAME, CONFIG_PATH);
     }
