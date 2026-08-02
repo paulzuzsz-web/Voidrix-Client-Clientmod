@@ -9,6 +9,22 @@ zulässt. Der Mod läuft damit auf jedem Server, ohne dort installiert zu sein.
 
 ---
 
+## Screenshots
+
+Alle Bilder sind echte Aufnahmen aus dem laufenden Spiel (Minecraft 26.2).
+
+| | |
+|---|---|
+| ![Menü](docs/screenshots/01-menue.png) **Mod-Menü** – Sidebar, Tabs, Suche, Karten-Grid | ![Detailseite](docs/screenshots/02-detailseite.png) **Detailseite** – Toggle, Slider, Dropdown, Farbwähler |
+| ![Voidrix+](docs/screenshots/04-voidrix-plus-aktiv.png) **Voidrix+** – nach Einlösen des Codes | ![Fehler](docs/screenshots/03-code-ungueltig.png) **Ungültiger Code** |
+| ![HUD](docs/screenshots/05-hud-ingame.png) **HUD im Spiel** | ![HUD-Editor](docs/screenshots/06-hud-editor.png) **HUD-Editor** – Drag & Drop |
+
+![V-Präfix](docs/screenshots/07-v-praefix-chat.png)
+
+*Das leuchtende V vor dem Namen im Chat (Premium-Variante).*
+
+---
+
 ## Bauen
 
 ```bash

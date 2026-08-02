@@ -154,7 +154,7 @@ public final class VoidrixUsers {
 				? Style.EMPTY.withColor(TextColor.fromRgb(Theme.ACCENT & 0xFFFFFF)).withBold(true)
 				: Style.EMPTY.withColor(ChatFormatting.GRAY);
 
-		return Component.literal("V").setStyle(style).append(Component.literal(" ").withStyle(Style.EMPTY));
+		return Component.literal("V").setStyle(style).append(Component.literal(" "));
 	}
 
 	/**
@@ -172,7 +172,7 @@ public final class VoidrixUsers {
 				.withColor(TextColor.fromRgb(pulsing))
 				.withBold(true);
 
-		return Component.literal("V").setStyle(style).append(Component.literal(" ").withStyle(Style.EMPTY));
+		return Component.literal("V").setStyle(style).append(Component.literal(" "));
 	}
 
 	/**
@@ -185,6 +185,10 @@ public final class VoidrixUsers {
 		}
 
 		MutableComponent prefix = animated ? buildAnimatedPrefix(uuid) : buildPrefix(uuid);
-		return prefix.append(name);
+
+		// Wichtig: als Kinder an eine *leere* Wurzel haengen. Wuerde man
+		// stattdessen prefix.append(name) benutzen, erbt der Name den Stil des
+		// Praefixes - die komplette Nachricht waere dann violett und fett.
+		return Component.empty().append(prefix).append(name);
 	}
 }
