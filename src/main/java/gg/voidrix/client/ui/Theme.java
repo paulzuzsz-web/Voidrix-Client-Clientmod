@@ -87,7 +87,14 @@ public final class Theme {
 	public static final int RADIUS_SMALL = 3;
 
 	/** Breite der Icon-Sidebar (Icon plus Mini-Label darunter). */
-	public static final int SIDEBAR_WIDTH = 54;
+	public static final int SIDEBAR_WIDTH = 44;
+
+	/**
+	 * Abstand zwischen Sidebar und Inhaltsflaeche. Die Sidebar ist ein
+	 * eigenstaendiges Panel und "schwebt" neben dem Inhalt - genau dieser
+	 * Spalt macht den Look aus.
+	 */
+	public static final int SIDEBAR_GAP = 6;
 
 	/** Hoehe der Tab-Leiste oben. */
 	public static final int TAB_BAR_HEIGHT = 32;

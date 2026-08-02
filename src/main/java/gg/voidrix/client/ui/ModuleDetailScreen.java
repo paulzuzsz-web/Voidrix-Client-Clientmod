@@ -42,7 +42,7 @@ import java.util.Map;
  */
 public class ModuleDetailScreen extends Screen {
 
-	private static final int ROW_HEIGHT = 22;
+	private static final int ROW_HEIGHT = 26;
 	private static final int PADDING = 14;
 
 	/** Breite des Zahlenfeldes vor einem Slider. */
@@ -242,9 +242,13 @@ public class ModuleDetailScreen extends Screen {
 		int filled = (int) (trackWidth * fraction);
 		Draw.roundedRect(g, trackX, trackY, filled, 2, 1, Theme.ACCENT);
 
+		// runder Griff auf der Spur
 		boolean hovered = Draw.isHovered(mouseX, mouseY, trackX - 4, y + 2, trackWidth + 8, 16);
-		Draw.roundedRect(g, trackX + filled - 2, trackY - 3, 5, 8, 2,
-				hovered ? Theme.ACCENT : Theme.TEXT);
+		int knobX = trackX + filled - 3;
+
+		Draw.roundedRect(g, knobX, trackY - 3, 7, 7, 3, 0xFFFFFFFF);
+		Draw.roundedOutline(g, knobX, trackY - 3, 7, 7, 3,
+				hovered ? Theme.ACCENT : Theme.BORDER_STRONG);
 	}
 
 	/** Die aufgeklappte Optionsliste eines Dropdowns. */

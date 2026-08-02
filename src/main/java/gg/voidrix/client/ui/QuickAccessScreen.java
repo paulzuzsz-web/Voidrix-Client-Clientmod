@@ -43,8 +43,8 @@ public class QuickAccessScreen extends Screen {
 			VoidrixMenuScreen.Page.FRIENDS
 	};
 
-	private static final int ICON_BUTTON = 30;
-	private static final int ICON_GAP = 6;
+	private static final int ICON_BUTTON = 36;
+	private static final int ICON_GAP = 7;
 
 	private int buttonX;
 	private int buttonY;
@@ -89,20 +89,28 @@ public class QuickAccessScreen extends Screen {
 		renderIconRow(g, mouseX, mouseY);
 	}
 
-	/** Schriftzug "VOIDRIX / CLIENT" mit dem Blitz als Trenner. */
+	/**
+	 * Schriftzug "VOIDRIX / CLIENT" mit dem Blitz als Trenner.
+	 *
+	 * <p>Deutlich groesser als der normale Fliesstext - Minecrafts Schrift hat
+	 * nur eine feste Groesse, deshalb wird ueber die Matrix skaliert.</p>
+	 */
 	private void renderWordmark(GuiGraphicsExtractor g) {
 		String left = "VOIDRIX";
 		String right = "CLIENT";
 
-		int gap = 26;
-		int total = Draw.textWidth(left) + gap + Draw.textWidth(right);
-		int startX = (this.width - total) / 2;
-		int y = buttonY - 34;
+		float scale = 2.4f;
+		int gap = 44;
 
-		// Der Schriftzug steht hell auf dem geblurrten Spiel. Damit er auch vor
-		// hellem Himmel lesbar bleibt, bekommt er einen Schatten.
-		Draw.text(g, left, startX, y, 0xFFFFFFFF);
-		Draw.text(g, right, startX + Draw.textWidth(left) + gap, y, 0xFFFFFFFF);
+		int leftWidth = Draw.textWidthScaled(left, scale);
+		int rightWidth = Draw.textWidthScaled(right, scale);
+
+		int startX = (this.width - (leftWidth + gap + rightWidth)) / 2;
+		int y = buttonY - 46;
+
+		// Schatten, damit der Schriftzug auch vor hellem Himmel steht
+		Draw.textScaled(g, left, startX, y, 0xFFFFFFFF, scale, true);
+		Draw.textScaled(g, right, startX + leftWidth + gap, y, 0xFFFFFFFF, scale, true);
 
 		// Blitz dazwischen - bei Voidrix+ pulsierend
 		int markColor = PremiumManager.isPremium()
@@ -110,7 +118,7 @@ public class QuickAccessScreen extends Screen {
 				: 0xFFFFFFFF;
 
 		Icons.draw(g, Icons.Icon.LIGHTNING,
-				startX + Draw.textWidth(left) + gap / 2 - 6, y - 4, 14, markColor);
+				startX + leftWidth + gap / 2 - 11, y - 3, 24, markColor);
 	}
 
 	private void renderMenuButton(GuiGraphicsExtractor g, int mouseX, int mouseY) {
@@ -124,10 +132,6 @@ public class QuickAccessScreen extends Screen {
 
 		Draw.textCentered(g, "MOD-MENUE", this.width / 2, buttonY + 6,
 				hovered ? Theme.TEXT : Theme.TEXT_DIM);
-
-		// Kurzer Hinweis darunter
-		Draw.textCentered(g, "RECHTE UMSCHALTTASTE SCHLIESST", this.width / 2, buttonY + 24 + 34,
-				Theme.withAlpha(0xFFFFFFFF, 110));
 	}
 
 	private void renderIconRow(GuiGraphicsExtractor g, int mouseX, int mouseY) {
@@ -146,8 +150,12 @@ public class QuickAccessScreen extends Screen {
 					hovered ? Theme.withAlpha(Theme.ACCENT, 190) : Theme.BORDER);
 
 			int iconColor = highlighted ? Theme.ACCENT : (hovered ? Theme.TEXT : Theme.TEXT_DIM);
-			Icons.draw(g, ROW_ICONS[i], x + 8, rowY + 8, 14, iconColor);
+			Icons.draw(g, ROW_ICONS[i], x + 10, rowY + 10, 16, iconColor);
 		}
+
+		// Hinweis unterhalb der Icon-Reihe, nicht darin
+		Draw.textScaledCentered(g, "RECHTE UMSCHALTTASTE SCHLIESST", this.width / 2,
+				rowY + ICON_BUTTON + 10, Theme.withAlpha(0xFFFFFFFF, 120), 0.8f, true);
 	}
 
 	// ---------------------------------------------------------------

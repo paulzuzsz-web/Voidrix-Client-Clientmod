@@ -3,6 +3,7 @@ package gg.voidrix.client.ui;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import org.joml.Matrix3x2fStack;
 
 import java.util.Locale;
 
@@ -265,6 +266,37 @@ public final class Draw {
 
 	public static int textWidth(String value) {
 		return font().width(value);
+	}
+
+	/**
+	 * Text in beliebiger Groesse.
+	 *
+	 * <p>Minecrafts Schrift kennt nur eine feste Groesse; groessere
+	 * Beschriftungen entstehen deshalb ueber die Transformationsmatrix. Das
+	 * wird u.a. fuer den Schriftzug im Schnellzugriff und die Kartentitel
+	 * benutzt.</p>
+	 */
+	public static void textScaled(GuiGraphicsExtractor g, String value, int x, int y,
+			int color, float scale, boolean shadow) {
+		Matrix3x2fStack pose = g.pose();
+		pose.pushMatrix();
+		pose.translate(x, y);
+		pose.scale(scale, scale);
+
+		g.text(font(), value, 0, 0, color, shadow);
+
+		pose.popMatrix();
+	}
+
+	public static void textScaledCentered(GuiGraphicsExtractor g, String value, int centerX, int y,
+			int color, float scale, boolean shadow) {
+		int x = centerX - Math.round(font().width(value) * scale / 2f);
+		textScaled(g, value, x, y, color, scale, shadow);
+	}
+
+	/** Breite eines skalierten Textes. */
+	public static int textWidthScaled(String value, float scale) {
+		return Math.round(font().width(value) * scale);
 	}
 
 	/** Kuerzt Text auf eine Maximalbreite und haengt "..." an. */
