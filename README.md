@@ -13,15 +13,14 @@ zulässt. Der Mod läuft damit auf jedem Server, ohne dort installiert zu sein.
 
 Alle Bilder sind echte Aufnahmen aus dem laufenden Spiel (Minecraft 26.2).
 
+![Schnellzugriff](docs/screenshots/01-quick-access.png)
+
+*Schnellzugriff auf Tastendruck: Schriftzug, „Mod-Menü"-Knopf und Icon-Reihe.*
+
 | | |
 |---|---|
-| ![Menü](docs/screenshots/01-menue.png) **Mod-Menü** – Sidebar, Tabs, Suche, Karten-Grid | ![Detailseite](docs/screenshots/02-detailseite.png) **Detailseite** – Toggle, Slider, Dropdown, Farbwähler |
-| ![Voidrix+](docs/screenshots/04-voidrix-plus-aktiv.png) **Voidrix+** – nach Einlösen des Codes | ![Fehler](docs/screenshots/03-code-ungueltig.png) **Ungültiger Code** |
-| ![HUD](docs/screenshots/05-hud-ingame.png) **HUD im Spiel** | ![HUD-Editor](docs/screenshots/06-hud-editor.png) **HUD-Editor** – Drag & Drop |
-
-![V-Präfix](docs/screenshots/07-v-praefix-chat.png)
-
-*Das leuchtende V vor dem Namen im Chat (Premium-Variante).*
+| ![Menü](docs/screenshots/02-menue.png) **Mod-Menü** – Sidebar mit Labels, Tabs, Suche, Karten-Grid | ![Detailseite](docs/screenshots/03-detailseite.png) **Detailseite** – Zahlenfeld + Slider, Dropdown, Farbwähler |
+| ![HUD](docs/screenshots/04-hud-ingame.png) **HUD im Spiel** | ![V-Präfix](docs/screenshots/05-v-praefix-chat.png) **V-Präfix im Chat** (Premium-Variante) |
 
 ---
 
@@ -74,7 +73,7 @@ Zum Testen im Entwickler-Client:
 
 | Taste | Funktion |
 |---|---|
-| **Rechte Umschalttaste** | Voidrix-Menü öffnen |
+| **Rechte Umschalttaste** | Schnellzugriff öffnen (von dort ins Mod-Menü) |
 | Rechte Strg-Taste | HUD-Editor öffnen |
 | C | Zoom |
 | B | Waypoint an aktueller Position setzen |
@@ -213,16 +212,26 @@ public static final List<String> VALID_CODES = List.of(
 
 ## Design
 
+Helles **Frosted Glass**: weiß-transluzente Flächen über dem geblurrten Spiel,
+runde Ecken, Beschriftungen in Großbuchstaben. Violett ist ausschließlich
+*Zustandsfarbe* — aktiver Tab, aktiver Schalter, gefüllter Slider, ausgewählter
+Sidebar-Eintrag.
+
 | | Farbe |
 |---|---|
-| Basis (dunkles Violett-Grau) | `#12101A` |
 | Akzent (Violett) | `#7C3AED` |
 | Zweitakzent (Cyan) | `#22D3EE` |
+| Panel / Sidebar | weiß, ~85 % deckend |
+| Text | `#23202B` / `#6B6676` / `#9C97A6` |
+| Dunkle Fläche (HUD, Editor, Logo) | `#12101A` |
 
-Karten tragen eine **gekappte Ecke oben rechts** als Wiedererkennungsmerkmal,
-Konturen sind feine glühende Linien statt harter Schatten. Alle Farben und
-Layout-Konstanten stehen zentral in `ui/Theme.java` — wer umfärben möchte,
-ändert nur diese Datei.
+Das HUD selbst bleibt bewusst dunkel — es liegt über der Welt und muss dort
+lesbar sein; im Menü wäre helles Glas dagegen richtig.
+
+Alle Farben und Layout-Konstanten stehen zentral in `ui/Theme.java`, die
+Grundformen in `ui/Draw.java` (`panel`, `card`, `input`, `toggle`, `checkbox`,
+`scrollbar`) und die Piktogramme in `ui/Icons.java` — wer umfärben oder ein
+Icon ergänzen möchte, fasst nur diese drei Dateien an.
 
 ---
 

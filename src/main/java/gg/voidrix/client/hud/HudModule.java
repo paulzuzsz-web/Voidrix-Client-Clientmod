@@ -69,7 +69,7 @@ public abstract class HudModule extends Module {
 			add(new ColorSetting("bg_color", "Hintergrundfarbe", "Farbe der Flaeche", 0xB012101A));
 
 	protected final ColorSetting textColor =
-			add(new ColorSetting("text_color", "Textfarbe", "Farbe der Beschriftung", Theme.TEXT));
+			add(new ColorSetting("text_color", "Textfarbe", "Farbe der Beschriftung", Theme.HUD_TEXT));
 
 	protected final ColorSetting accentColor =
 			add(new ColorSetting("accent_color", "Akzentfarbe", "Farbe des Wertes", Theme.ACCENT_2));

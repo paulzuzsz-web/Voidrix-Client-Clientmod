@@ -179,14 +179,8 @@ public class TextField {
 	public void render(GuiGraphicsExtractor g, double mouseX, double mouseY) {
 		boolean hovered = Draw.isHovered(mouseX, mouseY, x, y, width, height);
 
-		Draw.cutCornerRect(g, x, y, width, height, 4, Theme.SURFACE_HIGH);
-
-		// Kontur: im Fokus in der Akzentfarbe, sonst dezent
-		int borderColor = focused
-				? Theme.withAlpha(Theme.ACCENT, 200)
-				: Theme.withAlpha(hovered ? Theme.ACCENT : Theme.TEXT_MUTED, 90);
-
-		Draw.cutCornerOutline(g, x, y, width, height, 4, borderColor);
+		// Helles Eingabefeld mit runden Ecken; im Fokus violett umrandet.
+		Draw.input(g, x, y, width, height, focused || hovered);
 
 		int textY = y + (height - 8) / 2;
 		boolean empty = value.isEmpty();
@@ -201,7 +195,7 @@ public class TextField {
 		// blinkender Cursor
 		if (focused && (System.currentTimeMillis() / 500) % 2 == 0) {
 			int caretX = x + 6 + Draw.textWidth(value.substring(0, Math.min(caret, value.length())));
-			Draw.rect(g, Math.min(caretX, x + width - 4), textY - 1, 1, 10, Theme.ACCENT_2);
+			Draw.rect(g, Math.min(caretX, x + width - 4), textY - 1, 1, 10, Theme.ACCENT);
 		}
 	}
 }

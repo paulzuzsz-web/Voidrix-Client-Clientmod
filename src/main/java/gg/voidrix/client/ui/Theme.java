@@ -3,53 +3,94 @@ package gg.voidrix.client.ui;
 /**
  * Farbpalette und Layout-Konstanten des Voidrix-Designs.
  *
- * <p>Alle Farben sind ARGB-Integer. Wer das Design umfaerben moechte, aendert
- * nur diese Datei - Menue, HUD und Editor lesen ausschliesslich hier.</p>
+ * <p><b>Bildsprache:</b> helles "Frosted Glass" - weiss-transluzente Flaechen
+ * ueber dem geblurrten Spiel, runde Ecken, Beschriftungen in Grossbuchstaben.
+ * Violett dient ausschliesslich als <i>Zustandsfarbe</i>: aktiver Tab, aktiver
+ * Schalter, gefuellter Slider, ausgewaehlter Sidebar-Eintrag.</p>
+ *
+ * <p>Wer umfaerben moechte, aendert nur diese Datei - Menue, HUD und Editor
+ * lesen ausschliesslich hier.</p>
  */
 public final class Theme {
 
-	// --- Basisfarben aus dem Design ---------------------------------
-	/** Dunkles Violett-Grau - Grundflaeche. */
-	public static final int BASE = 0xFF12101A;
+	// ---------------------------------------------------------------
+	// Akzente (Voidrix-Identitaet)
+	// ---------------------------------------------------------------
 
-	/** Akzent Violett. */
+	/** Akzent Violett - markiert aktive Zustaende. */
 	public static final int ACCENT = 0xFF7C3AED;
 
-	/** Zweitakzent Cyan. */
+	/** Zweitakzent Cyan - sparsam fuer Hervorhebungen. */
 	public static final int ACCENT_2 = 0xFF22D3EE;
 
-	// --- Abgeleitete Flaechen ---------------------------------------
-	/** Karten-/Panelflaeche, minimal heller als BASE. */
-	public static final int SURFACE = 0xFF17151F;
+	/** Dunkles Violett-Grau - Logo, HUD-Hintergrund, dunkle Flaechen. */
+	public static final int BASE = 0xFF12101A;
 
-	/** Erhoehte Flaeche (Hover, Eingabefelder). */
-	public static final int SURFACE_HIGH = 0xFF1E1B29;
+	// ---------------------------------------------------------------
+	// Frosted-Glass-Flaechen
+	// ---------------------------------------------------------------
 
-	/** Halbtransparenter Overlay-Schleier ueber dem Spiel. */
-	public static final int OVERLAY = 0xC012101A;
+	/** Heller Schleier ueber dem geblurrten Spiel. */
+	public static final int OVERLAY = 0x33101018;
 
-	/** Sidebar-Hintergrund. */
-	public static final int SIDEBAR = 0xF00E0C15;
+	/** Hauptflaeche des Menues. */
+	public static final int PANEL = 0xD9EDEDF2;
 
-	// --- Text --------------------------------------------------------
-	public static final int TEXT = 0xFFEDE9F5;
-	public static final int TEXT_DIM = 0xFF9A94AD;
-	public static final int TEXT_MUTED = 0xFF635D75;
+	/** Sidebar - eine Spur kraeftiger als das Panel. */
+	public static final int SIDEBAR = 0xE6E4E4EB;
 
-	// --- Zustandsfarben ----------------------------------------------
-	public static final int SUCCESS = 0xFF34D399;
-	public static final int ERROR = 0xFFF87171;
-	public static final int LOCKED = 0xFF4A4458;
+	/** Kartenflaeche auf dem Panel. */
+	public static final int CARD = 0x8CFFFFFF;
 
-	// --- Layout -------------------------------------------------------
-	/** Groesse der gekappten Ecke oben rechts (Wiedererkennungsmerkmal). */
-	public static final int CORNER_CUT = 10;
+	/** Karte unter dem Mauszeiger. */
+	public static final int CARD_HOVER = 0xCCFFFFFF;
 
-	/** Breite der Icon-Sidebar links. */
-	public static final int SIDEBAR_WIDTH = 46;
+	/** Eingabefelder, Dropdowns, Slider-Spur. */
+	public static final int INPUT = 0xA6FFFFFF;
+
+	/** Feine Trenn- und Umrandungslinien. */
+	public static final int BORDER = 0x24000000;
+
+	/** Etwas kraeftigere Umrandung (Fokus, Hover). */
+	public static final int BORDER_STRONG = 0x4D000000;
+
+	// ---------------------------------------------------------------
+	// Text (dunkel auf hellem Grund)
+	// ---------------------------------------------------------------
+
+	public static final int TEXT = 0xFF23202B;
+	public static final int TEXT_DIM = 0xFF6B6676;
+	public static final int TEXT_MUTED = 0xFF9C97A6;
+
+	/** Text auf violetter Flaeche. */
+	public static final int TEXT_ON_ACCENT = 0xFFFFFFFF;
+
+	/** Text im HUD - dort liegt der Grund dunkel ueber der Welt. */
+	public static final int HUD_TEXT = 0xFFFFFFFF;
+
+	// ---------------------------------------------------------------
+	// Zustandsfarben
+	// ---------------------------------------------------------------
+
+	public static final int SUCCESS = 0xFF22C55E;
+	public static final int ERROR = 0xFFDC2626;
+	public static final int LOCKED = 0xFFA8A2B3;
+
+	// ---------------------------------------------------------------
+	// Layout
+	// ---------------------------------------------------------------
+
+	/** Eckenradius von Panels und Karten. */
+	public static final int RADIUS = 5;
+
+	/** Kleinerer Radius fuer Knoepfe, Felder und Badges. */
+	public static final int RADIUS_SMALL = 3;
+
+	/** Breite der Icon-Sidebar (Icon plus Mini-Label darunter). */
+	public static final int SIDEBAR_WIDTH = 54;
 
 	/** Hoehe der Tab-Leiste oben. */
-	public static final int TAB_BAR_HEIGHT = 34;
+	public static final int TAB_BAR_HEIGHT = 32;
 
 	private Theme() {
 	}
@@ -69,7 +110,7 @@ public final class Theme {
 		return withAlpha(argb, alpha);
 	}
 
-	/** Mischt zwei Farben linear (t = 0 -> a, t = 1 -> b). Auch fuer Farbverlaeufe. */
+	/** Mischt zwei Farben linear (t = 0 -> a, t = 1 -> b). */
 	public static int lerp(int a, int b, float t) {
 		float clamped = Math.max(0f, Math.min(1f, t));
 

@@ -98,11 +98,13 @@ public class HudEditorScreen extends Screen {
 		int boxWidth = Math.max(Draw.textWidth(title), Draw.textWidth(hint)) + 20;
 		int boxX = (this.width - boxWidth) / 2;
 
-		Draw.cutCornerRect(g, boxX, 8, boxWidth, 32, Theme.CORNER_CUT, Theme.withAlpha(Theme.BASE, 220));
-		Draw.cutCornerOutline(g, boxX, 8, boxWidth, 32, Theme.CORNER_CUT, Theme.withAlpha(Theme.ACCENT, 140));
+		// Der Editor liegt ueber der Welt, deshalb hier eine dunkle Flaeche mit
+		// hellem Text - nicht das helle Frosted Glass des Menues.
+		Draw.roundedRect(g, boxX, 8, boxWidth, 32, Theme.RADIUS, Theme.withAlpha(Theme.BASE, 225));
+		Draw.roundedOutline(g, boxX, 8, boxWidth, 32, Theme.RADIUS, Theme.withAlpha(Theme.ACCENT, 150));
 
-		Draw.textCentered(g, title, this.width / 2, 14, Theme.TEXT);
-		Draw.textCentered(g, hint, this.width / 2, 26, Theme.TEXT_DIM);
+		Draw.textCentered(g, Draw.upper(title), this.width / 2, 14, Theme.HUD_TEXT);
+		Draw.textCentered(g, hint, this.width / 2, 26, Theme.withAlpha(Theme.HUD_TEXT, 165));
 	}
 
 	/** Hilfslinien in der Bildschirmmitte waehrend des Ziehens. */

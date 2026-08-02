@@ -104,11 +104,11 @@ public class WaypointsModule extends Module {
 		}
 
 		String name = waypoint.getName();
-		Draw.textCentered(g, name, x, y + size + 2, Theme.TEXT);
+		Draw.textCentered(g, name, x, y + size + 2, Theme.HUD_TEXT);
 
 		if (showDistance.value()) {
 			String label = Math.round(distance) + "m";
-			Draw.textCentered(g, label, x, y + size + 12, Theme.TEXT_DIM);
+			Draw.textCentered(g, label, x, y + size + 12, Theme.withAlpha(Theme.HUD_TEXT, 180));
 		}
 	}
 

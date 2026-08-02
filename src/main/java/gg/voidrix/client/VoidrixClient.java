@@ -8,7 +8,7 @@ import gg.voidrix.client.module.misc.WaypointsModule;
 import gg.voidrix.client.module.pvp.CustomCrosshairModule;
 import gg.voidrix.client.module.visual.ShulkerPreviewModule;
 import gg.voidrix.client.ui.HudEditorScreen;
-import gg.voidrix.client.ui.VoidrixMenuScreen;
+import gg.voidrix.client.ui.QuickAccessScreen;
 import gg.voidrix.client.util.TpsTracker;
 import gg.voidrix.client.waypoint.Waypoint;
 import gg.voidrix.client.waypoint.WaypointManager;
@@ -56,7 +56,7 @@ public class VoidrixClient implements ClientModInitializer {
 		// 6. Client-Tick: Tasten abfragen und Module ticken lassen
 		ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
 
-		// 6. Beim Beenden alles sichern
+		// 7. Beim Beenden alles sichern
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> ConfigManager.save());
 
 		Voidrix.LOGGER.info("Voidrix ist bereit. Menue oeffnen mit der rechten Shift-Taste.");
@@ -115,7 +115,7 @@ public class VoidrixClient implements ClientModInitializer {
 		// Menue oeffnen
 		while (VoidrixKeys.OPEN_MENU.consumeClick()) {
 			if (client.gui.screen() == null) {
-				client.gui.setScreen(new VoidrixMenuScreen());
+				client.gui.setScreen(new QuickAccessScreen());
 			}
 		}
 
