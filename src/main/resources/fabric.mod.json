@@ -2,23 +2,34 @@
   "schemaVersion": 1,
   "id": "voidrix",
   "version": "${version}",
-  "name": "Voidrix Client",
-  "description": "A client-side quality-of-life modification for Minecraft: 20 movable HUD widgets, visual tweaks and vanilla HUD control, with a drag-and-drop editor. Settings live in one local file. No account, no server, no telemetry.",
+  "name": "Voidrix",
+  "description": "Clientseitiger Minecraft-Mod mit HUD-System, Mod-Menue, PvP- und Optik-Modulen. Laeuft auf jedem Server, ohne dort installiert zu sein.",
   "authors": [
     "Voidrix"
   ],
   "contact": {},
   "license": "MIT",
   "icon": "assets/voidrix/icon.png",
+
   "environment": "client",
+
   "entrypoints": {
     "client": [
-      "dev.voidrix.VoidrixClient"
+      "gg.voidrix.client.VoidrixClient"
     ]
   },
+
+  "mixins": [
+    {
+      "config": "voidrix.mixins.json",
+      "environment": "client"
+    }
+  ],
+
   "depends": {
-    "minecraft": "~26.2",
-    "fabricloader": ">=0.19.0",
-    "fabric-api": "*"
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": ">=26.2",
+    "java": ">=25"
   }
 }

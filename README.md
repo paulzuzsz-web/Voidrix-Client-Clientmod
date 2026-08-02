@@ -1,150 +1,248 @@
-# Voidrix Client
+# Voidrix
 
-A client-side quality-of-life mod for **Minecraft 26.2** on **Fabric**.
+Clientseitiger Minecraft-Mod für **Fabric**, mit Mod-Menü, freiem HUD-System,
+PvP- und Optik-Modulen, Waypoints und Discord Rich Presence.
 
-Voidrix gives you a movable HUD, a set of visual tweaks, and control over which parts of the
-vanilla interface you actually want to see — behind one dark, purpose-built menu.
-
-It is entirely local. There is no account, no login, no server, no database and no telemetry.
-Nothing Voidrix does touches the network; every setting lives in a single JSON file on your disk.
-
----
-
-## What it does
-
-### The menu — `Right Shift`
-
-Three columns: categories, the modules in that category, and the settings of whichever module you
-selected. Toggles, sliders, dropdowns and RGB colour pickers, all drawn in the Voidrix style.
-
-Every module can be given its own toggle key from its settings panel — click the key button, press
-a key, done. `Escape` while binding clears the key instead of assigning it.
-
-### The HUD editor — `Right Ctrl`
-
-Drag any widget anywhere. Widgets snap to the screen edges, the centre lines, and to each other's
-edges once you get within a few pixels, with a guide line showing which snap took hold. `R` resets
-the widget under the cursor.
-
-Positions are stored as a fraction of the free space on each axis, so a widget you push flush into a
-corner stays in that corner at any window size, resolution or GUI scale — and one you leave centred
-stays centred.
+Voidrix ist ein **reiner Client-Mod**: Es wird kein eigenes Paket an den Server
+geschickt und kein Spielverhalten verändert, das der Server nicht ohnehin
+zulässt. Der Mod läuft damit auf jedem Server, ohne dort installiert zu sein.
 
 ---
 
-## Modules
-
-**20 HUD widgets**, each individually movable, scalable, and able to show or hide its own panel:
-
-| Widget | Shows |
-| --- | --- |
-| FPS | Frame rate, optionally tinted green/amber/red by how healthy it is |
-| Ping | Latency to the server, with the same colour grading |
-| Coordinates | X/Y/Z, whole blocks or one decimal |
-| Direction | Compass facing plus the axis it runs along |
-| Biome | Biome at your feet, pretty-printed or as a raw id |
-| Speed | Movement speed in blocks/second or km/h, measured from real position change |
-| Clock | Your computer's clock, 12 or 24 hour |
-| Session | Time since you launched the game |
-| Memory | Heap usage as a percentage, megabytes, or both |
-| CPS | Clicks per second, sampled per frame so fast clicks are not missed |
-| Keystrokes | WASD, mouse buttons and jump, each fading as it is pressed |
-| Armour | Equipped armour and held item with durability |
-| Effects | Active potion effects, soonest to expire first |
-| Durability | Remaining uses on your held item |
-| Held item | What you are holding and how many you own in total |
-| Looking at | The block or entity under your crosshair |
-| Light level | Block light where you stand, with a spawnable warning |
-| Weather | Clear, rain or thunder |
-| Server | Address of the server you are on |
-| Players | How many players are online |
-
-**Visual**
-
-- **Fullbright** — raise brightness past the vanilla ceiling. Your original value is captured on
-  enable and put back on disable.
-- **Zoom** — hold `C` to zoom, with an adjustable factor and optional easing.
-- **No view bobbing** — stop the camera swaying as you walk.
-
-**Interface**
-
-- **Clean HUD** — hide the crosshair, hotbar, experience bar, health, hunger, armour bar, air
-  bubbles, effect icons, scoreboard, boss bar or action bar text, individually and live.
-
----
-
-## Installing
-
-1. Minecraft **26.2** with **Fabric Loader 0.19.0** or newer.
-2. [Fabric API](https://modrinth.com/mod/fabric-api) — the only dependency.
-3. Drop `voidrix-1.0.0.jar` into your `mods` folder.
-
-Java 25 is required, because Minecraft 26.2 requires it.
-
----
-
-## Building
+## Bauen
 
 ```bash
 ./gradlew build
 ```
 
-The jar lands in `build/libs/`. You need a **JDK 25** on `JAVA_HOME`; the Gradle wrapper pins
-Gradle 9.5.1 and Fabric Loom 1.17.
+Die fertige JAR liegt danach unter:
 
-Minecraft 26.2 ships deobfuscated, so there is no mappings step and no remapping — the build
-depends on Minecraft and Fabric API directly.
+```
+build/libs/voidrix-1.0.0.jar
+```
+
+Diese Datei in den `mods/`-Ordner der Minecraft-Instanz kopieren. Zusätzlich
+werden **Fabric Loader** und **Fabric API** benötigt.
+
+Zum Testen im Entwickler-Client:
+
+```bash
+./gradlew runClient
+```
+
+### Voraussetzungen
+
+| | Version |
+|---|---|
+| Minecraft | 26.2 |
+| Fabric Loader | 0.19.3 |
+| Fabric API | 0.156.0+26.2 |
+| Fabric Loom | 1.17.17 |
+| **JDK** | **25** |
+
+> **Hinweis zur Java-Version:** Minecraft 26.2 verlangt laut Mojangs
+> Version-Manifest Java 25 (`javaVersion.majorVersion: 25`). Mit einem JDK 21
+> lassen sich die Klassen von 26.2 nicht einmal einlesen, deshalb ist die
+> Toolchain in `build.gradle` auf 25 gesetzt.
+
+> **Hinweis zu Mappings:** Ab Minecraft 26.x wird das Spiel **unobfuskiert**
+> ausgeliefert. Es gibt daher keine Yarn-Mappings mehr und in `build.gradle`
+> bewusst *keine* `mappings`-Zeile — der Code kompiliert direkt gegen Mojangs
+> echte Klassen- und Methodennamen. Verwendet wird das Plugin
+> `net.fabricmc.fabric-loom` (die `-remap`-Variante ist nur für die älteren,
+> obfuskierten Versionen ≤ 1.21.11 gedacht).
 
 ---
 
-## Your settings
+## Bedienung
 
-Everything is written to:
+| Taste | Funktion |
+|---|---|
+| **Rechte Umschalttaste** | Voidrix-Menü öffnen |
+| Rechte Strg-Taste | HUD-Editor öffnen |
+| C | Zoom |
+| B | Waypoint an aktueller Position setzen |
 
-```
-.minecraft/config/voidrix/config.json
-```
-
-Readable and safe to hand-edit. The file is written to a temporary file and moved into place, so a
-crash mid-save cannot truncate a config that was previously fine, and any single value that fails to
-parse falls back to its default rather than resetting the rest.
-
----
-
-## How it is put together
-
-- **No mixins.** Voidrix touches nothing in Minecraft's internals. HUD widgets are registered as a
-  single Fabric HUD element, and hiding vanilla elements works by wrapping them through Fabric's own
-  registry rather than cancelling their draw calls. That keeps it compatible with other mods and
-  means a Minecraft update is far less likely to break it.
-- **One dependency.** Fabric API, nothing else — no Kotlin runtime, no UI library.
-- **A widget that throws is switched off, not fatal.** A crash inside a widget's render would
-  normally take the whole HUD, and the game, with it; instead it is logged and that widget is
-  disabled.
-
-Source layout:
-
-```
-dev.voidrix
-├── VoidrixClient      entry point, module registry, tick and lifecycle wiring
-├── VoidrixKeys        the three rebindable key bindings
-├── config             the single local JSON config
-├── module             module base classes and the modules themselves
-├── setting            typed settings: bool, int, double, enum, colour
-├── ui                 theme, drawing primitives, menu, HUD editor
-└── util               keyboard polling
-```
-
-The interface is drawn from scratch on top of Minecraft's `fill` and `text` calls. Rounded corners,
-rings, shadows and glows are all built in `Draw` by emitting one horizontal span per pixel row and
-feathering the end pixels — which is why the curves are smooth despite there being no rounded-rect
-primitive to call.
+Alle Tasten sind in den Minecraft-Steuerungsoptionen unter der Kategorie
+**Voidrix** frei belegbar.
 
 ---
 
-## Licence
+## Konfiguration
 
-MIT. See [LICENSE](LICENSE).
+Die gesamte Konfiguration liegt als JSON in:
 
-Voidrix is original work. It is not affiliated with, derived from, or endorsed by any other
-Minecraft client.
+```
+config/voidrix.json
+```
+
+Sie wird beim Start geladen und bei jeder Änderung im Menü sowie beim Beenden
+gespeichert. Die Datei ist bewusst gut lesbar formatiert und lässt sich auch
+von Hand bearbeiten; unbekannte oder fehlerhafte Einträge werden ignoriert,
+statt den Start zu verhindern.
+
+```jsonc
+{
+  "configVersion": 1,
+  "premium": { "unlocked": false, "redeemedAt": 0 },
+  "modules": {
+    "fps": {
+      "enabled": true,
+      "settings": { "scale": 1.0, "background": "BLUR", "text_color": "#FFEDE9F5" },
+      "position": { "x": 0.02, "y": 0.02 }
+    }
+  },
+  "waypoints": []
+}
+```
+
+---
+
+## Module
+
+**HUD** — CPS-Zähler, FPS, Ping, Koordinaten, TPS, Health Indicator, Chat Heads
+
+**Gameplay/PvP** — Item Highlighter, Custom Crosshair, Block Outlines,
+NoHurtCam, Drop Stack, Toggle Sprint, Zoom
+
+**Optik** — 3D Skin Vorschau, Shulker Preview, Shiny Pots, Wavey Capes,
+Item Model, Particles Filter, Borderless Fullscreen
+
+**Sonstiges** — Discord Rich Presence, Waypoints
+
+Jedes Modul ist einzeln aktivierbar und hat eine eigene Detailseite mit
+ON/OFF-Schalter, „Zurücksetzen“, Slidern, Dropdown, Farbwähler und Textfeldern.
+
+---
+
+## HUD-System
+
+Jedes HUD-Modul erbt von `hud/HudModule` und liefert nur seinen **Text** —
+Position, Skalierung, Hintergrund, Rahmen und Farben erledigt die Basisklasse
+einheitlich. Positionen werden als **Bruchteil des Bildschirms** (0…1)
+gespeichert und bleiben damit bei Auflösungs- oder GUI-Skalierungswechseln an
+der gleichen relativen Stelle.
+
+Das Format-Textfeld kennt die Platzhalter `{left}` (Beschriftung) und
+`{right}` (Wert), z. B. `{left}: {right}` → `FPS: 144`.
+
+Im HUD-Editor (rechte Strg-Taste) lassen sich alle aktiven Elemente per
+Drag & Drop verschieben; sie rasten an Bildschirmkanten und -mitte ein.
+`R` legt alle Elemente wieder untereinander an den linken Rand.
+
+### Eigenes HUD-Modul
+
+```java
+public class MyHud extends HudModule {
+    public MyHud() {
+        super("my_hud", "Mein HUD", "Zeigt etwas", 0.02f, 0.5f);
+    }
+
+    @Override public String getLeftText()  { return "Label"; }
+    @Override public String getRightText() { return "42"; }
+}
+```
+
+Danach nur noch in `ModuleManager.registerAll()` eintragen — Menü, HUD-Editor
+und Config greifen automatisch darauf zu. Neue Einstellungen erscheinen
+ebenfalls automatisch auf der Detailseite, weil diese generisch aus den
+`Setting`-Typen aufgebaut wird.
+
+---
+
+## Namens-Präfix
+
+Vor dem Namen jedes Voidrix-Nutzers steht ein kleines „V“ — im Nametag über
+dem Kopf, in der Tab-Liste und im Chat. Voidrix+-Nutzer bekommen die
+hervorgehobene Variante (im Nametag zusätzlich zwischen Violett und Cyan
+pulsierend), normale Nutzer ein schlichtes graues V.
+
+Umgesetzt per Mixin auf `EntityRenderer#getNameTag` (Nametag),
+`PlayerTabOverlay#getNameForDisplay` (Tab-Liste) und
+`ChatComponent#addMessage` (Chat).
+
+Da der Mod rein clientseitig ist, kennt der Client zunächst nur **sich selbst**
+sicher als Voidrix-Nutzer. Wie sich das über ein Backend (REST-Lookup der
+Tab-Listen-UUIDs) oder eine Custom Payload (`voidrix:users` via
+`ClientPlayNetworking`) auf andere Spieler ausweiten lässt, ist ausführlich in
+`user/VoidrixUsers.java` beschrieben — beides dockt an derselben Methode
+`markVoidrixUser(UUID, boolean)` an, ohne dass Rendering oder Mixins angefasst
+werden müssen.
+
+---
+
+## Voidrix+
+
+Im Voidrix+-Bereich des Menüs lässt sich ein Code einlösen. Bei Erfolg wird
+Voidrix+ dauerhaft in der Config gespeichert, das Premium-Badge aktiv, das
+Namens-V wechselt zur Premium-Variante und gesperrte Module (Schloss-Icon)
+werden freigeschaltet. Bei falscher Eingabe erscheint
+„Code ungültig – prüfe deine Eingabe“.
+
+Die gültigen Codes stehen als Liste in `premium/PremiumCodes.java` und lassen
+sich dort einfach erweitern:
+
+```java
+public static final List<String> VALID_CODES = List.of(
+        "kwhfiejyguso+"
+        // , "voidrix-beta-2026"
+);
+```
+
+> Da der Mod clientseitig ist, stehen die Codes im Klartext in der JAR. Für
+> eine fälschungssichere Lösung müsste die Einlösung gegen ein Backend geprüft
+> werden — der Ansatz ist in `premium/PremiumManager.java` kommentiert.
+
+---
+
+## Design
+
+| | Farbe |
+|---|---|
+| Basis (dunkles Violett-Grau) | `#12101A` |
+| Akzent (Violett) | `#7C3AED` |
+| Zweitakzent (Cyan) | `#22D3EE` |
+
+Karten tragen eine **gekappte Ecke oben rechts** als Wiedererkennungsmerkmal,
+Konturen sind feine glühende Linien statt harter Schatten. Alle Farben und
+Layout-Konstanten stehen zentral in `ui/Theme.java` — wer umfärben möchte,
+ändert nur diese Datei.
+
+---
+
+## Projektstruktur
+
+```
+src/main/java/gg/voidrix/client/
+├── VoidrixClient.java          Einstiegspunkt (Client-Entrypoint)
+├── VoidrixKeys.java            Tastenbelegungen
+├── config/ConfigManager.java   Laden/Speichern von config/voidrix.json
+├── premium/                    Voidrix+ Codes und Status
+├── module/
+│   ├── Module.java             Basisklasse aller Module
+│   ├── ModuleManager.java      Registrierung (hier neue Module eintragen)
+│   ├── setting/                Bool, Int, Double, Enum, Color, String
+│   ├── hud/  pvp/  visual/  misc/
+├── hud/                        Generisches HUD-System + HudManager
+├── ui/                         Menü, Detailseite, HUD-Editor, Theme, Draw
+├── mixin/                      7 Mixins (Zoom, NoHurtCam, V-Präfix, …)
+├── user/VoidrixUsers.java      Wer bekommt das V
+├── waypoint/                   Waypoints
+└── integration/DiscordRpc.java Discord IPC ohne externe Bibliothek
+```
+
+---
+
+## Hinweise
+
+- **Discord Rich Presence** ist ohne externe Bibliothek umgesetzt: Voidrix
+  spricht direkt den lokalen Discord-IPC-Socket an (Java 21+ bringt mit
+  `UnixDomainSocketAddress` alles Nötige mit). Läuft kein Discord, passiert
+  schlicht nichts. Die eigene Application-ID trägt man im Modul ein.
+- **Cloth Config** wird bewusst nicht verwendet — Voidrix bringt seine eigene
+  Config-GUI mit, damit das Menü zum Design passt. Wer lieber Cloth Config
+  nutzt, findet den nötigen Eintrag auskommentiert in `build.gradle`.
+
+## Lizenz
+
+MIT — siehe [LICENSE](LICENSE).

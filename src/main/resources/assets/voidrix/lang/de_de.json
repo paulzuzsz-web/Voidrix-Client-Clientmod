@@ -1,6 +1,7 @@
 {
-  "key.category.voidrix.general": "Voidrix Client",
-  "key.voidrix.menu": "Voidrix-Menü öffnen",
-  "key.voidrix.hud_editor": "HUD-Editor öffnen",
-  "key.voidrix.zoom": "Zoom"
+  "key.categories.voidrix.main": "Voidrix",
+  "key.voidrix.open_menu": "Voidrix-Menue oeffnen",
+  "key.voidrix.hud_editor": "HUD-Editor oeffnen",
+  "key.voidrix.zoom": "Zoom",
+  "key.voidrix.add_waypoint": "Waypoint setzen"
 }

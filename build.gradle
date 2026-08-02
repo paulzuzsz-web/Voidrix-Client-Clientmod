@@ -1,3 +1,6 @@
+// 'net.fabricmc.fabric-loom' is the plugin for *unobfuscated* Minecraft (26.x).
+// The 'net.fabricmc.fabric-loom-remap' variant is only needed for the older,
+// obfuscated versions (<= 1.21.11) where a `mappings` dependency is required.
 plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
@@ -6,13 +9,12 @@ version = project.mod_version
 group = project.maven_group
 
 base {
-	archivesName = 'voidrix'
+	archivesName = project.archives_base_name
 }
 
-repositories {
-	mavenCentral()
-}
-
+// Voidrix is a *client only* mod - it never touches server code, so a single
+// source set is enough (no splitEnvironmentSourceSets). Everything lives in
+// src/main and fabric.mod.json declares "environment": "client".
 loom {
 	mods {
 		"voidrix" {
@@ -21,18 +23,37 @@ loom {
 	}
 }
 
+repositories {
+	mavenCentral()
+	maven { url = 'https://maven.fabricmc.net/' }
+}
+
 dependencies {
+	// Minecraft 26.x ships unobfuscated: there is deliberately NO `mappings`
+	// dependency here, and no remapping step - we compile straight against
+	// Mojang's real class and method names.
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	// NOTE: No Cloth Config here on purpose. Voidrix ships its own themed
+	// config GUI (gg.voidrix.client.ui) so the menu matches the design spec.
+	// If you would rather use Cloth Config, add:
+	//   modApi "me.shedaniel.cloth:cloth-config-fabric:<ver>"
+	// plus  maven { url = "https://maven.shedaniel.me/" }  above.
+	//
+	// Discord Rich Presence is implemented dependency-free over the local
+	// Discord IPC socket (see integration/DiscordRpc.java) - no JNA needed.
 }
 
 processResources {
-	def version = project.version
-	inputs.property "version", version
+	inputs.property "version", project.version
+	inputs.property "loader_version", project.loader_version
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version
+		expand "version": project.version,
+				"loader_version": project.loader_version
 	}
 }
 
@@ -41,13 +62,17 @@ tasks.withType(JavaCompile).configureEach {
 	it.options.encoding = 'UTF-8'
 }
 
+// Minecraft 26.2 requires Java 25 (Mojang manifest: majorVersion 25).
 java {
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+	withSourcesJar()
+
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
 }
 
 jar {
 	from("LICENSE") {
-		rename { "${it}_voidrix" }
+		rename { "${it}_${project.archives_base_name}" }
 	}
 }
